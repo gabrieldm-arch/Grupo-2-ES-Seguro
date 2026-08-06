@@ -59,3 +59,50 @@ Para subsidiar a modelagem de ameaças e mitigação de abusos, destacam-se os p
 * **Sessões e Tokens de Autenticação (JWT/OAuth2):** Chaves de acesso e tokens de sessão que garantem a autenticação e autorização de cada usuário sem permitir sequestro de contas (*Spoofing*).
 * **Serviço de Comunicação e Roteamento GPS:** Mecanismos que garantem a disponibilidade logística e impedem rastreamento indevido ou interceptação de conversas privadas entre clientes e parceiros.
 * **Servidores e Infraestrutura de Backend:** Ambiente de execução de microserviços, filas de mensagens e balanceadores de carga, que precisam estar protegidos contra ataques de negação de serviço (*Denial of Service - DoS*).
+
+---
+
+## 8.3 Usuários, ativos e pontos de interação
+
+O sistema de Delivery interliga dezenas de componentes. Abaixo estão mapeados os principais elementos e recursos do ecossistema, segmentados por categoria:
+
+### Usuários e Perfis de Acesso
+- **Cliente:** O consumidor final, com acesso via App Mobile e Web.
+- **Parceiro (Restaurante):** O operador do estabelecimento, com acesso via Portal Web do Parceiro.
+- **Entregador:** O parceiro logístico motorizado/ciclista, com acesso via App Mobile do Entregador.
+- **Administrador:** O integrante do suporte/gestão da plataforma, com acesso via Painel Admin Web.
+
+### Credenciais e Autenticação
+- Senhas com hash criptográfico, tokens temporários (OTP/PIN via SMS e E-mail).
+- Tokens de sessão (JWT) e tokens OAuth2 para logins sociais (Google/Apple).
+
+### Pagamentos e Financeiro
+- Dados bancários, cartões de crédito (acessíveis à plataforma apenas de forma tokenizada pelo Gateway parceiro).
+- Chaves PIX, histórico de compras, carteiras digitais (cashback/saldo) e registros de repasses/comissões.
+
+### Localização, Mensagens e Avaliações
+- **GPS:** Histórico e coordenadas em tempo real (posição do entregador e endereço exato de residência do cliente).
+- **Chat:** Sistema de mensageria interna para dúvidas sobre o pedido e contato direto (com mascaramento de números).
+- **Reviews:** Avaliações de qualidade, fotos de recebimentos e comentários sobre a conduta de entregadores/lojas.
+
+### Arquitetura: Servidores, Bancos de Dados e Aplicações
+- **Aplicações (Front-end):** Aplicativos nativos iOS/Android (Clientes e Entregadores) e SPAs Web (Painéis de Restaurantes/Admin).
+- **Servidores (Back-end):** Servidores Cloud em provedor de nuvem, APIs de Backend (microsserviços REST/GraphQL), balanceadores de carga e filas de mensagens para processamento assíncrono (RabbitMQ/Kafka).
+- **Banco de Dados:** Bancos relacionais (ex.: PostgreSQL para transações, pedidos e controle de saldos) e não-relacionais (ex.: MongoDB para logs, histórico de chat e avaliações).
+
+### Serviços Externos e APIs
+- **APIs de Pagamento:** Conexões externas para processamento de cobranças e estornos (ex.: Stripe, MercadoPago, Pagar.me).
+- **APIs de Mapeamento:** Conexões para cálculo de rota e distância (ex.: Google Maps, Mapbox).
+- **APIs de Comunicação:** Serviços de envio de e-mails, SMS e Push Notifications (ex.: Twilio, Firebase, SendGrid).
+
+### Ativos Críticos Destacados
+Os recursos que podem causar os maiores prejuízos, como financeiros, regulatórios, legais ou de reputação, caso sejam acessados, alterados, destruídos ou indisponibilizados indevidamente são:
+
+1. **Bancos de Dados de Pagamentos e PII (Informações Pessoalmente Identificáveis):**
+   * Contém CPFs, endereços, perfis comportamentais e saldos. Uma falha de segurança levaria a multas milionárias da LGPD e destruição da confiança da base de clientes.
+2. **APIs e Gateway de Pagamentos:**
+   * Se um atacante forjar requisições ou se passar por um restaurante, pode drenar fundos, aprovar pedidos sem pagar ou alterar as contas de repasse.
+3. **Serviços de Roteamento (GPS) e Chat Privado:**
+   * A interceptação em tempo real do GPS ou das conversas pode colocar em risco a segurança física dos usuários, como entregadores e clientes, em caso de perseguições, assaltos ou golpes no momento da entrega.
+4. **Infraestrutura Cloud de Microsserviços e Filas de Mensagens:**
+   * A indisponibilidade da nuvem ou interrupção no despacho de pedidos por algumas poucas horas, especialmente em horários de pico, como finais de semana, gera um prejuízo direto no faturamento.
