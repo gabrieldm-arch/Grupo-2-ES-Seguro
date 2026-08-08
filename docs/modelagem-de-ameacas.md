@@ -246,4 +246,13 @@ A probabilidade avalia a chance de a ameaça ser explorada com sucesso, consider
 | **3** | **Média-alta** | O evento é plausível e pode ocorrer em situações comuns de uso ou ataque. |
 | **4** | **Alta** | O evento pode ocorrer com facilidade, frequência ou durante condições previsíveis do sistema. |
 
+### 13.2 Critérios de impacto
 
+O impacto avalia os prejuízos e consequências que o evento de risco trará ao aplicativo, aos usuários (clientes, parceiros, entregadores) e ao modelo de negócios. Consideramos perdas financeiras, exposição de PII (LGPD), danos à reputação e interrupção do serviço. Utilizamos a seguinte escala:
+
+| Valor | Classificação | Critério |
+| :---: | :--- | :--- |
+| **1** | **Baixo** | Causa pequeno transtorno e pode ser corrigido rapidamente. |
+| **2** | **Moderado** | Causa interrupção ou inconsistência limitada, com possibilidade de recuperação. |
+| **3** | **Alto** | Causa prejuízo relevante aos usuários, ao negócio, à administração ou à privacidade. |
+| **4** | **Muito alto** | Pode afetar muitos usuários, comprometer operações críticas ou causar prejuízo grave. |
