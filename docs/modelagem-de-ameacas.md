@@ -268,6 +268,19 @@ A pontuação de cada risco será calculada multiplicando a probabilidade pelo i
 | **8 a 11** | **Alto** |
 | **12 a 16** | **Crítico** |
 
+### 13.4 Registro de riscos
+
+A partir das ameaças e casos de abuso levantados na Etapa 1, os eventos foram transformados na seguinte matriz de riscos (R01 a R06).
+
+| ID | Origem STRIDE | Evento de risco | Vulnerabilidade ou condição | Probabilidade | Impacto | Pontuação | Nível |
+| :---: | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **R01** | Spoofing (CA-01) | Sequestro de Sessão do Entregador, resultando em roubo de pedidos | Token JWT interceptável via rede insegura e ausência de verificação adicional de dispositivo | 3 | 4 | **12** | **Crítico** |
+| **R02** | Tampering (CA-02) | Manipulação do Valor do Pedido para forjar compras gratuitas | Aceitação de valores calculados no front-end sem recálculo/validação rígida no servidor | 3 | 3 | **9** | **Alto** |
+| **R03** | Repudiation (CA-03) | Golpe do Estorno (falsa alegação de não entrega) | Falta de evidências irrefutáveis de recebimento (ex: OTP, GPS log e assinatura fotográfica) | 4 | 2 | **8** | **Alto** |
+| **R04** | Info. Disclosure (CA-04) | Extração em Massa de Dados (IDOR) e vazamento de PII da base inteira | Uso de IDs sequenciais nas APIs sem validação forte de autorização sobre os objetos | 3 | 4 | **12** | **Crítico** |
+| **R05** | DoS (CA-05) | DDoS por Botnet derrubando a plataforma em horário de pico (ex: sexta à noite) | Endpoints de catálogo e busca abertos sem *Rate Limiting* ou proteção de Web Application Firewall | 3 | 4 | **12** | **Crítico** |
+| **R06** | Elevation of Privilege (CA-06)| Broken Access Control permitindo a parceiros acessar endpoints de Admin e zerar comissões | Endpoints verificam apenas autenticação (estar logado) e não o papel (role-based access control) | 2 | 4 | **8** | **Alto** |
+
 ## 13.6 Mapeamento NIST CSF 2.0
 
 Para organizar os resultados de segurança esperados e as medidas de mitigação no contexto do nosso aplicativo de delivery, adotamos as seis funções do framework NIST CSF 2.0. É importante ressaltar que as funções do NIST não são controles específicos, mas categorias lógicas para organizar a defesa do sistema.
