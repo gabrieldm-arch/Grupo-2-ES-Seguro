@@ -126,7 +126,7 @@ O diagrama representa a fronteira do sistema de Delivery e as interações diret
 
 A tabela a seguir apresenta a análise de ameaças utilizando a metodologia STRIDE. Cada categoria foi mapeada com foco estrito nas operações, ativos críticos e perfis de acesso (clientes, restaurantes, entregadores e administradores) presentes no ecossistema da plataforma de delivery.
 
-| Categoria STRIDE | Descrição da Ameaça | Ativo/Ponto de Interação Afetado | Cenário de Ataque (Casos de Abuso no Delivery) | Impacto Principal |
+| Categoria STRIDE | Descrição da Ameaça | Ativo/Ponto de Interação Afetado | Cenário de Ataque | Impacto Principal |
 | :--- | :--- | :--- | :--- | :--- |
 | **Spoofing** | Um ator malicioso assume a identidade de um usuário legítimo (cliente, entregador ou restaurante). | Sessões e Tokens de Autenticação (JWT/OAuth2). | Um atacante consegue roubar o token de sessão de um entregador e utiliza seu perfil no aplicativo para aceitar corridas com o único intuito de furtar as refeições coletadas nos restaurantes. | Roubo de mercadorias, risco à segurança física dos clientes e dano severo à reputação da plataforma. |
 | **Tampering** | Alteração indevida de dados em trânsito ou informações armazenadas no sistema. | APIs de Checkout e Gateway de Pagamento. | Um cliente mal-intencionado intercepta a requisição HTTP de finalização do pedido e altera o parâmetro do valor final para R$ 0,00 antes de enviá-la para a API de cobrança. | Fraude financeira direta, perda de receita para a plataforma e falha no repasse aos restaurantes parceiros. |
@@ -256,3 +256,82 @@ O impacto avalia os prejuízos e consequências que o evento de risco trará ao 
 | **2** | **Moderado** | Causa interrupção ou inconsistência limitada, com possibilidade de recuperação. |
 | **3** | **Alto** | Causa prejuízo relevante aos usuários, ao negócio, à administração ou à privacidade. |
 | **4** | **Muito alto** | Pode afetar muitos usuários, comprometer operações críticas ou causar prejuízo grave. |
+
+## 13.6 Mapeamento NIST CSF 2.0
+
+Para organizar os resultados de segurança esperados e as medidas de mitigação no contexto do nosso aplicativo de delivery, adotamos as seis funções do framework NIST CSF 2.0. É importante ressaltar que as funções do NIST não são controles específicos, mas categorias lógicas para organizar a defesa do sistema.
+
+### Apresentação das Funções (NIST CSF 2.0)
+*   **Govern:** Definir políticas, responsabilidades, prioridades e critérios de decisão (ex: políticas de banimento e estorno).
+*   **Identify:** Conhecer ativos, dependências, vulnerabilidades e riscos (ex: mapear endpoints vulneráveis a IDOR).
+*   **Protect:** Implementar salvaguardas para reduzir a probabilidade ou o impacto (ex: autenticação multifator, MFA).
+*   **Detect:** Identificar eventos suspeitos, falhas e possíveis incidentes (ex: rate limiting e logs de anomalias).
+*   **Respond:** Conter, analisar, comunicar e tratar incidentes (ex: bloqueio temporário de sessão).
+*   **Recover:** Restaurar serviços e dados e reduzir os prejuízos causados (ex: auto-scaling após DDoS).
+
+### Mapeamento dos Riscos para as Funções
+A tabela abaixo cruza os eventos de risco derivados dos nossos Casos de Abuso com as funções aplicáveis do NIST CSF 2.0.
+
+| Risco | Origem | Govern | Identify | Protect | Detect | Respond | Recover |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **R01** (Sequestro de Sessão) | Spoofing / CA-01 | | | X | X | X | X |
+| **R02** (Manipulação de Valor) | Tampering / CA-02 | | | X | X | X | |
+| **R03** (Golpe do Estorno) | Repudiation / CA-03 | X | | X | X | X | |
+| **R04** (Extração por IDOR) | Info. Disclosure / CA-04| X | X | X | X | X | X |
+| **R05** (DDoS em Horário de Pico)| DoS / CA-05 | | | X | X | X | X |
+| **R06** (Broken Access Control) | Priv. Escalation / CA-06| X | X | X | X | X | |
+
+---
+
+## 13.7 Plano de Tratamento
+
+Nesta subseção detalhamos as medidas concretas que serão aplicadas para tratar cada risco, atribuindo os responsáveis diretos e as evidências que garantirão que os controles funcionam na prática.
+
+| Risco | Estratégia | Controles Propostos | Funções do NIST | Responsáveis | Evidências e Verificação |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **R01** (Sequestro de Sessão) | Reduzir | Vincular token JWT ao device_id/IP; aplicar MFA/TOTP obrigatório no login do entregador; renovação com expiração curta. | Protect, Detect | Equipe de IAM / Dev Backend | Logs de autenticação, testes unitários de expiração de token, simulação de login anômalo. |
+| **R02** (Manipulação de Valor) | Reduzir | Backend deve recalcular o total da compra sempre baseando-se no DB local; assinar payload (HMAC); rejeitar transações divergentes. | Protect, Detect | Equipe de Pagamentos / Dev Backend | Testes unitários do fluxo de checkout garantindo a rejeição de requisições alteradas. |
+| **R03** (Golpe do Estorno) | Reduzir | Confirmação de entrega por código OTP; registro de geolocalização com timestamp; foto obrigatória da entrega. | Govern, Protect | Logística / Dev Mobile | Auditoria de logs de entrega (no banco de dados), validação física do envio de OTP. |
+| **R04** (Extração por IDOR) | Evitar | Autorização baseada em objeto (RBAC/ABAC); substituição de IDs sequenciais por UUIDs; alertas de varreduras via rate limiting. | Identify, Protect | Dev Backend / SecOps | Relatórios de Pentest e testes de segurança automatizados (SAST/DAST). |
+| **R05** (DDoS em Pico) | Reduzir | Rate limiting por IP/usuário nos endpoints públicos; Web Application Firewall (WAF) ativo; regras de auto-scaling na nuvem. | Protect, Respond | Infraestrutura / Cloud | Relatórios do WAF, logs de bloqueio de anomalias, testes de carga (stress testing). |
+| **R06** (Broken Access Control) | Evitar | Controle de acesso baseado em papéis (RBAC) em todo endpoint administrativo; gerar tokens com scopes e audiences distintos para admins. | Govern, Protect | Dev Backend / SecOps | Revisão de código (code review) para chamadas na API, logs de negação de acesso (HTTP 403). |
+
+---
+
+## 13.8 Ordem inicial de implementação e estimativa do risco residual
+
+### Ordem Inicial de Implementação
+A sequência para mitigação foi elaborada priorizando as vulnerabilidades de maior severidade potencial e aquelas que exigem mudanças mais estruturais na fundação do software (como a substituição de chaves primárias e arquitetura de permissões).
+
+1.  **R04 (Extração por IDOR):** Urgência máxima devido ao alto impacto legal/multas milionárias da LGPD. Alterar IDs para UUIDs impacta a modelagem do DB, logo deve ser feito primeiro.
+2.  **R06 (Broken Access Control):** Urgência sistêmica. Falhas de autorização expõem todo o portal administrativo a operadores mal-intencionados.
+3.  **R02 (Manipulação de Valor):** Alta prioridade para estancar perdas diretas na receita (fraudes de pagamento) decorrentes da falta de recálculo no backend.
+4.  **R01 (Sequestro de Sessão):** Requer intervenção no fluxo do app (inserção de MFA e JWT strict) para barrar invasões nos perfis de entregadores.
+5.  **R05 (DDoS em Pico):** Implementação na camada de infraestrutura/WAF. Pode ser realizado em paralelo ao desenvolvimento backend.
+6.  **R03 (Golpe do Estorno):** Implementação final de regra de negócio no front-end do aplicativo mobile (inclusão do fluxo de verificação de OTP e foto).
+
+### Estimativa do Risco Residual
+A redução do nível de risco somente será ratificada após a aplicação dos controles sugeridos, da execução de testes rigorosos e da coleta das devidas evidências.
+
+| Risco | Nível Inicial | Nível Residual Esperado | Condição para aceitar o residual |
+| :--- | :---: | :---: | :--- |
+| **R01** | Alto | Médio | Token expirando em < 15 min e logs apontando bloqueio eficaz via fingerprint de dispositivo ativo. |
+| **R02** | Alto | Baixo | Backend cobrindo 100% de cenários de divergência com testes de mutação. |
+| **R03** | Médio | Baixo | Redução sistêmica de estornos fraudulentos e disponibilidade de prova cabal (logs e OTPs) atestando que a entrega ocorreu. |
+| **R04** | Crítico | Baixo | Pentest (DAST) validando falha em 100% das tentativas de iteração de perfis ou visualização indevida. |
+| **R05** | Crítico | Médio | WAF comprovadamente filtrando tráfego anômalo e garantindo estabilidade do app em simulações de pico (stress test). |
+| **R06** | Crítico | Baixo | Impossibilidade técnica de acesso a rotas `/admin/` por qualquer payload de token que não possua a role explícita de administrador. |
+
+---
+
+## 13.9 Considerações Finais da Etapa 2
+
+Nesta segunda etapa, aprofundamos a análise iniciada com a modelagem STRIDE, quantificando e definindo o tratamento das ameaças prioritárias.
+
+**Riscos e prioridades dominantes:** Constatou-se que as falhas arquitetônicas estruturais — particularmente as de *Broken Access Control* (R06) e *IDOR* (R04) — representam as maiores ameaças existenciais ao delivery. A priorização definiu essas vulnerabilidades como os alvos primários, uma vez que viabilizam perdas de dados massivas e quebras severas na lógica de negócio do ecossistema e das leis de privacidade.
+
+**Estratégias de tratamento:** As estratégias centrais pautaram-se nas respostas de **Evitar** falhas graves, corrigindo o design da API (como o uso de UUID e verificação estrita de papéis), e de **Reduzir** os ataques por meio da imposição de barreiras (MFA, OTP Logístico e WAF). 
+
+**Limitações da avaliação:** Como trata-se de uma fase anterior ao desenvolvimento prático de código para muitas dessas funcionalidades, alguns dos níveis residuais estimados podem sofrer desvios (por exemplo, a implementação incompleta do RBAC ou regras de auto-scaling insuficientes). 
+
+Os pontos detalhados na Ordem de Implementação servirão como o roteiro basilar para a arquitetura segura que deve orientar as fases de codificação e verificação de vulnerabilidades (SAST/DAST) no decorrer do ciclo de vida deste sistema.
