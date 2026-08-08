@@ -257,6 +257,17 @@ O impacto avalia os prejuízos e consequências que o evento de risco trará ao 
 | **3** | **Alto** | Causa prejuízo relevante aos usuários, ao negócio, à administração ou à privacidade. |
 | **4** | **Muito alto** | Pode afetar muitos usuários, comprometer operações críticas ou causar prejuízo grave. |
 
+### 13.3 Cálculo e classificação
+
+A pontuação de cada risco será calculada multiplicando a probabilidade pelo impacto (`Pontuação = Probabilidade × Impacto`). O resultado define a prioridade de atenção que devemos dar ao evento:
+
+| Pontuação | Nível do risco |
+| :---: | :--- |
+| **1 a 3** | **Baixo** |
+| **4 a 7** | **Médio** |
+| **8 a 11** | **Alto** |
+| **12 a 16** | **Crítico** |
+
 ## 13.6 Mapeamento NIST CSF 2.0
 
 Para organizar os resultados de segurança esperados e as medidas de mitigação no contexto do nosso aplicativo de delivery, adotamos as seis funções do framework NIST CSF 2.0. É importante ressaltar que as funções do NIST não são controles específicos, mas categorias lógicas para organizar a defesa do sistema.
