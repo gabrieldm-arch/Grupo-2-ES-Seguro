@@ -1,11 +1,37 @@
 # Documento Principal de Modelagem de Ameaças e Análise de Riscos — ESS
 
+## Sumário
+- [1.1 Identificação do Sistema](#11-identificação-do-sistema)
+- [1.2 Descrição do Sistema](#12-descrição-do-sistema)
+- [1.3 Usuários, ativos e pontos de interação](#13-usuários-ativos-e-pontos-de-interação)
+- [1.4 Visão Geral da Arquitetura](#14-visão-geral-da-arquitetura)
+- [1.5 Modelagem STRIDE](#15-modelagem-stride)
+- [1.6 Casos de Abuso](#16-casos-de-abuso)
+- [1.7 Considerações Finais — Etapa 1](#17-considerações-finais--etapa-1)
+- [Etapa 2 — Análise, Priorização e Tratamento de Riscos (NIST CSF 2.0)](#etapa-2--análise-priorização-e-tratamento-de-riscos-nist-csf-20)
+- [2. Análise e priorização dos riscos](#2-análise-e-priorização-dos-riscos)
+  - [2.1 Critérios de probabilidade](#21-critérios-de-probabilidade)
+  - [2.2 Critérios de impacto](#22-critérios-de-impacto)
+  - [2.3 Cálculo e classificação](#23-cálculo-e-classificação)
+  - [2.4 Registro de riscos](#24-registro-de-riscos)
+- [2.5 Justificativa das Avaliações](#25-justificativa-das-avaliações)
+- [2.6 Priorização dos Riscos](#26-priorização-dos-riscos)
+- [2.7 Estratégias de Tratamento](#27-estratégias-de-tratamento)
+- [2.8 Apresentação das Funções do NIST CSF 2.0](#28-apresentação-das-funções-do-nist-csf-20)
+- [2.9 Mapeamento dos Riscos para as Funções do NIST CSF](#29-mapeamento-dos-riscos-para-as-funções-do-nist-csf)
+- [2.10 Plano de Tratamento](#210-plano-de-tratamento)
+- [2.11 Ordem Inicial de Implementação](#211-ordem-inicial-de-implementação)
+- [2.12 Estimativa do Risco Residual](#212-estimativa-do-risco-residual)
+- [2.13 Considerações Finais da Etapa 2](#213-considerações-finais-da-etapa-2)
+
+---
+
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
 > **Sistema Analisado:** App de Delivery de Comida *(Plataforma Integrada de Pedidos e Entregas Online)*
 
 ---
 
-## 8.1 Identificação do Sistema
+## 1.1 Identificação do Sistema
 
 * **Nome do Sistema:** App de Delivery de Comida *(Plataforma Integrada de Pedidos e Entregas Online)*
 * **Endereço do Repositório:** [https://github.com/gabrieldm-arch/Grupo-2-ES-Seguro](https://github.com/gabrieldm-arch/Grupo-2-ES-Seguro)
@@ -23,7 +49,7 @@ O ecossistema de um aplicativo de entrega de comida foi selecionado por ser um a
 
 ---
 
-## 8.2 Descrição do Sistema
+## 1.2 Descrição do Sistema
 
 O **App de Delivery de Comida** é uma plataforma distribuída constituída por aplicativos móveis (Android/iOS), portal web para estabelecimentos e painel administrativo, interligados via serviços de API backend.
 
@@ -62,7 +88,7 @@ Para subsidiar a modelagem de ameaças e mitigação de abusos, destacam-se os p
 
 ---
 
-## 8.3 Usuários, ativos e pontos de interação
+## 1.3 Usuários, ativos e pontos de interação
 
 O sistema de Delivery interliga dezenas de componentes. Abaixo estão mapeados os principais elementos e recursos do ecossistema, segmentados por categoria:
 
@@ -109,7 +135,7 @@ Os recursos que podem causar os maiores prejuízos, como financeiros, regulatór
 
 ---
 
-## 8.4 Visão Geral da Arquitetura
+## 1.4 Visão Geral da Arquitetura
 
 Para ilustrar as interações no sistema, elaboramos um **Diagrama de Casos de Uso**, que mapeia as principais ações realizadas pelos quatro atores fundamentais da plataforma: **Cliente**, **Restaurante**, **Entregador** e **Administrador**.
 
@@ -122,7 +148,7 @@ O diagrama representa a fronteira do sistema de Delivery e as interações diret
 
 ![Diagrama de Casos de Uso](../diagramas/casos-de-uso.png)
 
-## 8.5 Modelagem STRIDE
+## 1.5 Modelagem STRIDE
 
 A tabela a seguir apresenta a análise de ameaças utilizando a metodologia STRIDE. Cada categoria foi mapeada com foco estrito nas operações, ativos críticos e perfis de acesso (clientes, restaurantes, entregadores e administradores) presentes no ecossistema da plataforma de delivery.
 
@@ -135,7 +161,7 @@ A tabela a seguir apresenta a análise de ameaças utilizando a metodologia STRI
 | **Denial of Service** | Sobrecarga de recursos que torna o sistema indisponível para usuários legítimos. | Servidores e Infraestrutura de Backend, Filas de Mensagens. | Uma *botnet* inunda as APIs de catálogo de restaurantes e roteamento com milhares de requisições simultâneas durante um horário de pico (ex: sexta-feira à noite). | Indisponibilidade total do aplicativo, impedindo novos pedidos e gerando prejuízo massivo no faturamento diário. |
 | **Elevation of Privilege** | Um usuário comum obtém permissões de acesso superiores às do seu perfil (ex: administrador). | Painel Admin Web, Gestão de Identidade (IAM). | Um perfil de restaurante explora uma falha de autorização (Broken Access Control) no portal web e consegue acessar endpoints exclusivos da equipe de Administração, alterando a própria taxa de comissão para 0%. | Comprometimento sistêmico, fraudes internas em larga escala e manipulação das regras de negócio do delivery. |
 
-## 8.6 Casos de Abuso
+## 1.6 Casos de Abuso
 
 | ID | Caso de Abuso | Categoria STRIDE | Ativo/Ponto de Interação Afetado | Ator Malicioso | Pré-condição | Fluxo do Abuso | Impacto | Contramedidas |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -146,7 +172,7 @@ A tabela a seguir apresenta a análise de ameaças utilizando a metodologia STRI
 | **CA-05** | DDoS por Botnet em Horário de Pico | Denial of Service | Servidores e Infraestrutura de Backend, Filas de Mensagens | Atacante externo (operador de botnet) | Plataforma sem rate limiting robusto, WAF ou proteção anti-DDoS nos endpoints públicos | Atacante agenda ataque para horário de pico → botnet envia ~50.000 req/s aos endpoints `/search` e `/catalog` → servidores atingem limite de capacidade → filas de mensagens acumulam backlog inprocessável → plataforma fica indisponível | Indisponibilidade total do aplicativo, impedindo novos pedidos e gerando prejuízo massivo no faturamento diário | Rate limiting por IP e por usuário; WAF com detecção de tráfego anômalo; proteção anti-DDoS na infraestrutura (ex.: Cloudflare, AWS Shield); auto-scaling; circuit breaker nas filas de mensagens |
 | **CA-06** | Escalonamento de Privilégio via Broken Access Control | Elevation of Privilege | Painel Admin Web, Gestão de Identidade (IAM) | Operador de restaurante mal-intencionado | Endpoints administrativos protegidos apenas por autenticação, sem verificação de autorização por papel (role) | Operador autentica-se no portal parceiro → inspeciona chamadas de rede → identifica `PATCH /api/admin/commissions/998` → replica a requisição com seu próprio token JWT → backend valida apenas a autenticação, não o role → comissão é zerada | Comprometimento sistêmico, fraudes financeiras em larga escala e manipulação das regras de negócio do delivery | RBAC: verificar explicitamente o papel do usuário em todo endpoint; princípio do menor privilégio; tokens de parceiros e administradores com escopos distintos no JWT; testes SAST/DAST cobrindo escalonamento de privilégio |
 
-## 8.7 Considerações Finais — Etapa 1
+## 1.7 Considerações Finais — Etapa 1
 
 Esta seção sintetiza os principais resultados da análise de segurança realizada na Etapa 1, consolidando as ameaças mais preocupantes, os ativos de maior valor, os casos de abuso de maior impacto potencial e as principais dificuldades encontradas pelo grupo durante o processo de análise.
 
@@ -209,7 +235,7 @@ Considerando a combinação de facilidade de exploração, escala do dano e difi
 Um sistema de delivery real é composto por dezenas de microsserviços, integrações externas e fluxos de dados complexos. Definir o nível de granularidade adequado — suficientemente detalhado para ser útil, mas sem tornar o documento excessivamente extenso — exigiu diversas revisões e decisões de escopo ao longo da análise.
 
 **Diferenciação entre ameaça, vulnerabilidade e caso de abuso**
-No início da análise, o grupo teve dificuldade em distinguir com clareza o que constitui uma ameaça (o que pode acontecer), uma vulnerabilidade (a condição que permite que aconteça) e um caso de abuso (a narrativa de como um atacante exploraria essa condição na prática). A estruturação iterativa do documento, com revisões cruzadas entre as seções 8.5 e 8.6, foi necessária para garantir a coerência entre essas camadas.
+No início da análise, o grupo teve dificuldade em distinguir com clareza o que constitui uma ameaça (o que pode acontecer), uma vulnerabilidade (a condição que permite que aconteça) e um caso de abuso (a narrativa de como um atacante exploraria essa condição na prática). A estruturação iterativa do documento, com revisões cruzadas entre as seções 1.5 e 1.6, foi necessária para garantir a coerência entre essas camadas.
 
 **Estimativa de impacto sem dados reais**
 Como o sistema analisado é hipotético, a avaliação de impacto das ameaças precisou ser baseada em referências do setor e analogias com incidentes reais em plataformas similares, sem acesso a métricas concretas de faturamento, base de usuários ou histórico de incidentes. Isso introduz uma margem de subjetividade que precisará ser revisada em etapas futuras com dados mais concretos.
@@ -231,11 +257,11 @@ Essas prioridades serão formalizadas na Etapa 2, onde as ameaças identificadas
 
 # Etapa 2 — Análise, Priorização e Tratamento de Riscos (NIST CSF 2.0)
 
-## 13. Análise e priorização dos riscos
+## 2. Análise e priorização dos riscos
 
 Nesta etapa, transformamos as ameaças mapeadas na Etapa 1 em eventos de risco concretos para o aplicativo de delivery, adotando as escalas de probabilidade e impacto sugeridas para quantificação.
 
-### 13.1 Critérios de probabilidade
+### 2.1 Critérios de probabilidade
 
 A probabilidade avalia a chance de a ameaça ser explorada com sucesso, considerando as características do nosso sistema, o perfil dos atacantes e as vulnerabilidades do delivery. Utilizamos a seguinte escala:
 
@@ -246,7 +272,7 @@ A probabilidade avalia a chance de a ameaça ser explorada com sucesso, consider
 | **3** | **Média-alta** | O evento é plausível e pode ocorrer em situações comuns de uso ou ataque. |
 | **4** | **Alta** | O evento pode ocorrer com facilidade, frequência ou durante condições previsíveis do sistema. |
 
-### 13.2 Critérios de impacto
+### 2.2 Critérios de impacto
 
 O impacto avalia os prejuízos e consequências que o evento de risco trará ao aplicativo, aos usuários (clientes, parceiros, entregadores) e ao modelo de negócios. Consideramos perdas financeiras, exposição de PII (LGPD), danos à reputação e interrupção do serviço. Utilizamos a seguinte escala:
 
@@ -257,7 +283,7 @@ O impacto avalia os prejuízos e consequências que o evento de risco trará ao 
 | **3** | **Alto** | Causa prejuízo relevante aos usuários, ao negócio, à administração ou à privacidade. |
 | **4** | **Muito alto** | Pode afetar muitos usuários, comprometer operações críticas ou causar prejuízo grave. |
 
-### 13.3 Cálculo e classificação
+### 2.3 Cálculo e classificação
 
 A pontuação de cada risco será calculada multiplicando a probabilidade pelo impacto (`Pontuação = Probabilidade × Impacto`). O resultado define a prioridade de atenção que devemos dar ao evento:
 
@@ -268,7 +294,7 @@ A pontuação de cada risco será calculada multiplicando a probabilidade pelo i
 | **8 a 11** | **Alto** |
 | **12 a 16** | **Crítico** |
 
-### 13.4 Registro de riscos
+### 2.4 Registro de riscos
 
 A partir das ameaças e casos de abuso levantados na Etapa 1, os eventos foram transformados na seguinte matriz de riscos (R01 a R06).
 
@@ -280,9 +306,9 @@ A partir das ameaças e casos de abuso levantados na Etapa 1, os eventos foram t
 | **R04** | Info. Disclosure (CA-04) | Extração em Massa de Dados (IDOR) e vazamento de PII da base inteira | Uso de IDs sequenciais nas APIs sem validação forte de autorização sobre os objetos | 3 | 4 | **12** | **Crítico** |
 | **R05** | DoS (CA-05) | DDoS por Botnet derrubando a plataforma em horário de pico (ex: sexta à noite) | Endpoints de catálogo e busca abertos sem *Rate Limiting* ou proteção de Web Application Firewall | 3 | 4 | **12** | **Crítico** |
 | **R06** | Elevation of Privilege (CA-06)| Broken Access Control permitindo a parceiros acessar endpoints de Admin e zerar comissões | Endpoints verificam apenas autenticação (estar logado) e não o papel (role-based access control) | 2 | 4 | **8** | **Alto** |
-## 13.5 Justificativa das Avaliações
+## 2.5 Justificativa das Avaliações
 
-Esta seção explica os valores de probabilidade e impacto atribuídos a cada risco na seção 13.4, detalhando os critérios considerados para cada avaliação com base nas características do sistema, no perfil dos atacantes e nas condições de exploração identificadas.
+Esta seção explica os valores de probabilidade e impacto atribuídos a cada risco na seção 2.4, detalhando os critérios considerados para cada avaliação com base nas características do sistema, no perfil dos atacantes e nas condições de exploração identificadas.
 
 ---
 
@@ -364,7 +390,7 @@ Apesar do impacto máximo (4), a probabilidade relativamente menor (2) mantém o
 
 ---
 
-## 13.6 Priorização dos Riscos
+## 2.6 Priorização dos Riscos
 
 Com base nas pontuações calculadas, na gravidade das consequências, na quantidade de usuários e componentes afetados, nas dependências técnicas entre os riscos e na urgência do tratamento, define-se a seguinte ordem de prioridade:
 
@@ -389,7 +415,7 @@ A priorização não seguiu exclusivamente a pontuação numérica — três ris
 
 ---
 
-## 13.7 Estratégias de Tratamento
+## 2.7 Estratégias de Tratamento
 
 Para cada risco, foi definida uma estratégia principal de tratamento com justificativa baseada na natureza da vulnerabilidade, na viabilidade de eliminação da condição de risco e no custo-benefício da implementação.
 
@@ -404,7 +430,7 @@ Para cada risco, foi definida uma estratégia principal de tratamento com justif
 
 ---
 
-## 13.8 Apresentação das Funções do NIST CSF 2.0
+## 2.8 Apresentação das Funções do NIST CSF 2.0
 
 Para organizar os resultados de segurança esperados e as medidas de mitigação no contexto do aplicativo de delivery, adotamos as seis funções do NIST Cybersecurity Framework 2.0. É importante ressaltar que as funções do NIST não são controles específicos, mas categorias lógicas que organizam os resultados esperados de segurança — cada função agrupa um conjunto de práticas e resultados, e os controles concretos são os meios para atingi-los.
 
@@ -419,7 +445,7 @@ Para organizar os resultados de segurança esperados e as medidas de mitigação
 
 ---
 
-## 13.9 Mapeamento dos Riscos para as Funções do NIST CSF
+## 2.9 Mapeamento dos Riscos para as Funções do NIST CSF
 
 A tabela abaixo cruza os eventos de risco com as funções do NIST CSF 2.0 relevantes para seu tratamento. Cada marcação indica que a função é necessária para endereçar adequadamente o risco — funções foram marcadas apenas quando há relação direta com os controles propostos, evitando marcação indiscriminada.
 
@@ -434,7 +460,7 @@ A tabela abaixo cruza os eventos de risco com as funções do NIST CSF 2.0 relev
 
 ---
 
-## 13.10 Plano de Tratamento
+## 2.10 Plano de Tratamento
 
 Nesta subseção detalhamos as medidas concretas que serão aplicadas para tratar cada risco, atribuindo os responsáveis diretos e as evidências que confirmarão que os controles existem e funcionam na prática.
 
@@ -449,7 +475,7 @@ Nesta subseção detalhamos as medidas concretas que serão aplicadas para trata
 
 ---
 
-## 13.11 Ordem Inicial de Implementação
+## 2.11 Ordem Inicial de Implementação
 
 A sequência para mitigação foi elaborada priorizando as vulnerabilidades de maior severidade e aquelas que exigem mudanças estruturais na fundação do software, considerando também as dependências técnicas entre os controles.
 
@@ -462,7 +488,7 @@ A sequência para mitigação foi elaborada priorizando as vulnerabilidades de m
 
 ---
 
-## 13.12 Estimativa do Risco Residual
+## 2.12 Estimativa do Risco Residual
 
 A redução do nível de risco somente será confirmada após a implementação dos controles, execução de testes rigorosos e coleta das evidências definidas no plano de tratamento. Os valores abaixo representam estimativas condicionadas à implementação completa e verificada de todos os controles propostos.
 
@@ -477,7 +503,7 @@ A redução do nível de risco somente será confirmada após a implementação 
 
 ---
 
-## 13.13 Considerações Finais da Etapa 2
+## 2.13 Considerações Finais da Etapa 2
 
 Nesta segunda etapa, transformamos as ameaças identificadas na modelagem STRIDE em eventos de risco quantificados, priorizados e associados a planos de tratamento concretos, completando o ciclo de análise iniciado na Etapa 1.
 
@@ -491,6 +517,6 @@ Nesta segunda etapa, transformamos as ameaças identificadas na modelagem STRIDE
 
 **Principais dificuldades encontradas:** A principal dificuldade foi diferenciar com precisão os conceitos de ameaça, vulnerabilidade, evento de risco e controle, garantindo que cada camada do documento tratasse do nível correto de abstração. A segunda dificuldade foi justificar a priorização de riscos com pontuação idêntica (R01, R04 e R05 com pontuação 12), o que exigiu análise qualitativa de dependências técnicas e natureza do dano além da pontuação numérica.
 
-**Limitações da avaliação:** Como o sistema analisado é hipotético e não está em produção, os valores de probabilidade foram estimados com base em referências do setor e analogias com incidentes documentados em plataformas similares, sem acesso a dados históricos reais de ocorrências. Os níveis residuais estimados na seção 13.12 são projeções condicionadas à implementação completa e correta de todos os controles propostos — desvios de implementação (RBAC parcialmente aplicado, rate limiting com thresholds inadequados, MFA opcional em vez de obrigatório) podem resultar em níveis residuais superiores aos estimados.
+**Limitações da avaliação:** Como o sistema analisado é hipotético e não está em produção, os valores de probabilidade foram estimados com base em referências do setor e analogias com incidentes documentados em plataformas similares, sem acesso a dados históricos reais de ocorrências. Os níveis residuais estimados na seção 2.12 são projeções condicionadas à implementação completa e correta de todos os controles propostos — desvios de implementação (RBAC parcialmente aplicado, rate limiting com thresholds inadequados, MFA opcional em vez de obrigatório) podem resultar em níveis residuais superiores aos estimados.
 
 **Pontos a detalhar nas próximas etapas:** Os controles propostos precisarão ser detalhados em especificações técnicas de implementação, incluindo: definição dos escopos exatos de cada papel no modelo RBAC; thresholds de rate limiting por endpoint; política de rotação e revogação de tokens JWT; requisitos de retenção e integridade dos logs de auditoria; e critérios de aceite para os testes de segurança (SAST/DAST) integrados ao pipeline de CI/CD.
