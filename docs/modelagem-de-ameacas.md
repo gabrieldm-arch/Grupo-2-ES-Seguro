@@ -23,7 +23,8 @@
 - [2.11 Ordem Inicial de Implementação](#211-ordem-inicial-de-implementação)
 - [2.12 Estimativa do Risco Residual](#212-estimativa-do-risco-residual)
 - [2.13 Considerações Finais da Etapa 2](#213-considerações-finais-da-etapa-2)
-
+- [Etapa 3 — Projeto de uma Arquitetura Segura](#etapa-3--projeto-de-uma-arquitetura-segura)
+- [3.5 Justificativa das Avaliações](#35-decisões-de-arquitetura)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -520,3 +521,15 @@ Nesta segunda etapa, transformamos as ameaças identificadas na modelagem STRIDE
 **Limitações da avaliação:** Como o sistema analisado é hipotético e não está em produção, os valores de probabilidade foram estimados com base em referências do setor e analogias com incidentes documentados em plataformas similares, sem acesso a dados históricos reais de ocorrências. Os níveis residuais estimados na seção 2.12 são projeções condicionadas à implementação completa e correta de todos os controles propostos — desvios de implementação (RBAC parcialmente aplicado, rate limiting com thresholds inadequados, MFA opcional em vez de obrigatório) podem resultar em níveis residuais superiores aos estimados.
 
 **Pontos a detalhar nas próximas etapas:** Os controles propostos precisarão ser detalhados em especificações técnicas de implementação, incluindo: definição dos escopos exatos de cada papel no modelo RBAC; thresholds de rate limiting por endpoint; política de rotação e revogação de tokens JWT; requisitos de retenção e integridade dos logs de auditoria; e critérios de aceite para os testes de segurança (SAST/DAST) integrados ao pipeline de CI/CD.
+
+# Etapa 3 — Projeto de uma Arquitetura Segura
+
+## 3.5 Decisões de Arquitetura
+
+Com base nos riscos prioritários levantados na Etapa 2, definimos três decisões fundamentais de arquitetura para garantir que o sistema seja seguro desde a sua concepção técnica.
+
+| Decisão | Risco mitigado | Justificativa (Motivo, Componente e Resultado Esperado) |
+| :--- | :---: | :--- |
+| **Adoção de UUIDs versão 4 para chaves primárias** | **R04** (Extração em Massa de Dados por IDOR) | **Motivo:** Impedir que um atacante consiga enumerar e extrair dados de outros usuários apenas incrementando números sequenciais (ex: `/api/user/1` para `/api/user/2`).<br><br>**Componente afetado:** Banco de Dados e endpoints da API.<br><br>**Resultado esperado:** Impossibilidade técnica de varredura e adivinhação de rotas, eliminando a falha de design que permitia o vazamento em massa de dados. |
+| **Validação de Autorização Centralizada via API Gateway / Middleware com RBAC** | **R06** (Broken Access Control no Painel Admin) | **Motivo:** Ocultar opções na interface front-end não impede ataques diretos aos endpoints; a verificação precisa garantir que o token JWT contenha a declaração explícita (claim) do papel de Administrador.<br><br>**Componente afetado:** API Gateway / Gestão de Identidade (IAM).<br><br>**Resultado esperado:** Qualquer requisição para a rota `/admin/*` feita por parceiros ou clientes é rejeitada imediatamente com erro `HTTP 403 Forbidden` antes de atingir os microsserviços internos. |
+| **Processamento Transacional estritamente *Server-Side* com recálculo de valores** | **R02** (Manipulação do Valor do Pedido) | **Motivo:** O aplicativo mobile e o front-end web não são ambientes confiáveis, e parâmetros enviados pelo cliente podem ser interceptados e modificados via proxy (ex: zerando o valor do carrinho).<br><br>**Componente afetado:** API de Checkout e Gateway de Pagamento.<br><br>**Resultado esperado:** O backend ignora valores monetários enviados pelo cliente e sempre recalcula o total do pedido consultando o banco de dados interno, rejeitando compras fraudadas e mitigando prejuízos. |
