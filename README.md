@@ -41,10 +41,10 @@ Grupo-2-ES-Seguro/
 
 O projeto será desenvolvido em **7 etapas** ao longo da disciplina. O progresso de cada fase será acompanhado abaixo:
 
-- [ ] **Etapa 1:** Casos de Abuso e Modelagem de Ameaças com STRIDE *(Em andamento)*
-- [ ] **Etapa 2:** Análise, Priorização e Tratamento de Riscos com o NIST CSF *(Em andamento)*
-- [ ] **Etapa 3:** *Em breve*
-- [ ] **Etapa 4:** *Em breve*
-- [ ] **Etapa 5:** *Em breve*
-- [ ] **Etapa 6:** *Em breve*
-- [ ] **Etapa 7:** *Em breve*
+- [x] **Etapa 1:** Casos de Abuso e Modelagem de Ameaças com STRIDE 
+- [x] **Etapa 2:** Análise, Priorização e Tratamento de Riscos com o NIST CSF 
+- [ ] **Etapa 3:** Projeto de uma Arquitetura Segura *(Em andamento)*
+- [ ] **Etapa 4:** Código Seguro e Testes de Segurança
+- [ ] **Etapa 5:** Verificação de Vulnerabilidades
+- [ ] **Etapa 6:** Monitoramento e Detecção de Intrusões 
+- [ ] **Etapa 7:** DevSecOps e Vídeo Final

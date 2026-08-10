@@ -24,7 +24,11 @@
 - [2.12 Estimativa do Risco Residual](#212-estimativa-do-risco-residual)
 - [2.13 Considerações Finais da Etapa 2](#213-considerações-finais-da-etapa-2)
 - [Etapa 3 — Projeto de uma Arquitetura Segura](#etapa-3--projeto-de-uma-arquitetura-segura)
-- [3.5 Justificativa das Avaliações](#35-decisões-de-arquitetura)
+  - [3.1 Requisitos de Segurança](#31-requisitos-de-segurança)
+  - [3.2 Vulnerabilidades Catalogadas](#32-vulnerabilidades-catalogadas)
+  - [3.3 Diagrama da Arquitetura Segura](#33-diagrama-da-arquitetura-segura)
+  - [3.4 Decisões de Arquitetura](#34-decisões-de-arquitetura)
+
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -546,8 +550,13 @@ As três vulnerabilidades abaixo foram identificadas na OWASP e CWE como corresp
 | **R06 / RS-02** | **Broken Access Control** (Controle de Acesso Quebrado): categoria ampla que engloba falhas onde usuários conseguem agir fora de suas permissões previstas, incluindo acesso a funcionalidades ou dados de outros usuários, acesso não autorizado a painéis administrativos e elevação de privilégio por manipulação de parâmetros ou tokens. | OWASP Top 10 2021 — **A01: Broken Access Control**; CWE-285: Improper Authorization; CWE-862: Missing Authorization | No sistema de delivery, os endpoints do painel administrativo (`/api/admin/*`) verificam apenas se o usuário está autenticado (possui um token JWT válido), sem verificar se o token contém a *claim* de papel Administrador. Um operador de restaurante com token válido consegue replicar chamadas administrativas e manipular comissões e configurações globais da plataforma, configurando o risco R06. |
 | **R02 / RS-03** | **Mass Assignment / Client-Side Parameter Tampering** (Atribuição em Massa e Adulteração de Parâmetros pelo Cliente): ocorre quando a aplicação confia em dados enviados pelo cliente para processar operações críticas sem revalidação no servidor. No contexto de e-commerce e delivery, manifesta-se quando valores financeiros calculados no frontend são enviados na requisição e processados sem verificação contra o valor correto no banco de dados. | OWASP Top 10 2021 — **A04: Insecure Design**; CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes; OWASP Cheat Sheet: Mass Assignment | No sistema de delivery, a API de checkout processa o campo `total_amount` enviado pelo cliente na requisição `POST /checkout` sem recalcular o valor com base nos preços do catálogo no banco de dados. Um cliente com proxy HTTP consegue alterar esse campo para R$ 0,00 e ter o pedido processado sem cobrança, configurando o risco R02. |
 
-## 3.5 Decisões de Arquitetura
+## 3.3 Diagrama da Arquitetura Segura
 
+O diagrama abaixo ilustra a arquitetura da solução, destacando onde os principais controles de segurança estão posicionados para tratar os riscos mapeados (WAF, MFA, controle de acesso RBAC, Logs de Auditoria e UUIDs no banco de dados).
+
+![Diagrama de Arquitetura Segura](../diagramas/Diagrama%20Da%20Arquitetura%20Segura.drawio.png)
+
+## 3.4 Decisões de Arquitetura
 Com base nos riscos prioritários levantados na Etapa 2, definimos três decisões fundamentais de arquitetura para garantir que o sistema seja seguro desde a sua concepção técnica.
 
 | Decisão | Risco mitigado | Justificativa (Motivo, Componente e Resultado Esperado) |
