@@ -43,8 +43,8 @@ O projeto será desenvolvido em **7 etapas** ao longo da disciplina. O progresso
 
 - [x] **Etapa 1:** Casos de Abuso e Modelagem de Ameaças com STRIDE 
 - [x] **Etapa 2:** Análise, Priorização e Tratamento de Riscos com o NIST CSF 
-- [ ] **Etapa 3:** Projeto de uma Arquitetura Segura *(Em andamento)*
-- [ ] **Etapa 4:** Código Seguro e Testes de Segurança
-- [ ] **Etapa 5:** Verificação de Vulnerabilidades
+- [x] **Etapa 3:** Projeto de uma Arquitetura Segura 
+- [x] **Etapa 4:** Código Seguro e Testes de Segurança
+- [ ] **Etapa 5:** Verificação de Vulnerabilidades *(Em andamento)*
 - [ ] **Etapa 6:** Monitoramento e Detecção de Intrusões 
 - [ ] **Etapa 7:** DevSecOps e Vídeo Final

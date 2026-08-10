@@ -28,10 +28,9 @@
   - [3.2 Vulnerabilidades Catalogadas](#32-vulnerabilidades-catalogadas)
   - [3.3 Diagrama da Arquitetura Segura](#33-diagrama-da-arquitetura-segura)
   - [3.4 Decisões de Arquitetura](#34-decisões-de-arquitetura)
-  - [3.5 Justificativa das Avaliações](#35-decisões-de-arquitetura)
-  - [Etapa 4 — Código Seguro e Testes de Segurança](#etapa-4--código-seguro-e-testes-de-segurança)
+- [Etapa 4 — Código Seguro e Testes de Segurança](#etapa-4--código-seguro-e-testes-de-segurança)
   - [4.1 Escolha das Práticas](#41-escolha-das-práticas)
-
+  - [4.2 Testes e Implementação (Python)](#42-testes-e-implementação-python)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -595,3 +594,27 @@ Para garantir que a implementação do App de Delivery cumpra os Requisitos de S
 * **Risco Atendido:** **R02** — Manipulação do Valor do Pedido na Requisição (Tampering).
 * **Requisito de Segurança Relacionado:** **RS-03** — O sistema deve recalcular obrigatoriamente o valor total de todo pedido no servidor com base nos preços registrados no banco de dados.
 * **Justificativa:** A regra fundamental da OWASP para transações é tratar toda entrada proveniente do cliente como não confiável (*untrusted data*). Ao aplicar o recálculo *server-side*, o sistema ignora qualquer manipulação do parâmetro `total_amount` feita via *proxies* interceptadores. Adicionalmente, o uso de assinaturas HMAC garante a integridade da requisição, inviabilizando fraudes diretas na API de Checkout e no Gateway de Pagamento.
+
+## 4.2 Testes e Implementação
+
+Abaixo estão definidos os casos de uso válidos e inválidos para cada uma das práticas escolhidas, seguidos da explicação de como foram implementados.
+
+*Nota: O código-fonte, incluindo os testes executáveis, foi criado e disponibilizado na pasta `src/` do repositório (`etapa4_rbac_test.py` e `etapa4_checkout_test.py`).*
+
+### Prática 1: Controle de Acesso (RBAC)
+
+| Teste | Entrada ou ação | Resultado esperado |
+| :--- | :--- | :--- |
+| **TS01** *(Inválido)* | Operador de Restaurante tenta acessar a função administrativa de comissões | A solicitação é recusada com erro `HTTP 403 Forbidden` |
+| **TS02** *(Válido)* | Administrador autorizado acessa a mesma função | A solicitação é permitida (`HTTP 200 OK`) |
+
+**Forma de realização:** Criamos um *decorator* Python `@require_role("admin")` que envolve os endpoints administrativos. Antes de executar a função, ele extrai o papel (role) do objeto do usuário (simulando um token JWT) e valida contra a regra. Se falhar, lança uma `PermissionError` (403), cumprindo o TS01.
+
+### Prática 2: Validação Server-Side (Mass Assignment)
+
+| Teste | Entrada ou ação | Resultado esperado |
+| :--- | :--- | :--- |
+| **TS03** *(Inválido)* | Cliente envia um pedido de R$ 150, mas altera maliciosamente o parâmetro `total_amount` para R$ 0.00 | O servidor rejeita a transação por detecção de fraude financeira (`HTTP 400 Bad Request`) |
+| **TS04** *(Válido)* | Cliente envia pedido com total exato correspondente ao catálogo | A transação é processada com sucesso (`HTTP 200 OK`) |
+
+**Forma de realização:** Implementamos a função `process_checkout` que obrigatoriamente itera sobre os itens do carrinho e busca os preços reais em um dicionário simulando o banco de dados (`DB_PRODUCTS`). O cálculo final do servidor é comparado com o valor enviado pelo cliente. Qualquer divergência lança um `ValueError`, cumprindo o TS03 e evitando o recebimento de pedidos adulterados.
