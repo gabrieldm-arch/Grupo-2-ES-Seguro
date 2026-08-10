@@ -24,11 +24,11 @@
 - [2.12 Estimativa do Risco Residual](#212-estimativa-do-risco-residual)
 - [2.13 Considerações Finais da Etapa 2](#213-considerações-finais-da-etapa-2)
 - [Etapa 3 — Projeto de uma Arquitetura Segura](#etapa-3--projeto-de-uma-arquitetura-segura)
-  - [3.1 Requisitos de Segurança](#31-requisitos-de-segurança)
-  - [3.2 Vulnerabilidades Catalogadas](#32-vulnerabilidades-catalogadas)
-  - [3.3 Diagrama da Arquitetura Segura](#33-diagrama-da-arquitetura-segura)
-  - [3.4 Decisões de Arquitetura](#34-decisões-de-arquitetura)
-
+- [3.1 Requisitos de Segurança](#31-requisitos-de-segurança)
+- [3.2 Vulnerabilidades Catalogadas](#32-vulnerabilidades-catalogadas)
+- [3.5 Justificativa das Avaliações](#35-decisões-de-arquitetura)
+- [Etapa 4 — Código Seguro e Testes de Segurança](#etapa-4--código-seguro-e-testes-de-segurança)
+- [4.1 Escolha das Práticas](#41-escolha-das-práticas)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -550,13 +550,8 @@ As três vulnerabilidades abaixo foram identificadas na OWASP e CWE como corresp
 | **R06 / RS-02** | **Broken Access Control** (Controle de Acesso Quebrado): categoria ampla que engloba falhas onde usuários conseguem agir fora de suas permissões previstas, incluindo acesso a funcionalidades ou dados de outros usuários, acesso não autorizado a painéis administrativos e elevação de privilégio por manipulação de parâmetros ou tokens. | OWASP Top 10 2021 — **A01: Broken Access Control**; CWE-285: Improper Authorization; CWE-862: Missing Authorization | No sistema de delivery, os endpoints do painel administrativo (`/api/admin/*`) verificam apenas se o usuário está autenticado (possui um token JWT válido), sem verificar se o token contém a *claim* de papel Administrador. Um operador de restaurante com token válido consegue replicar chamadas administrativas e manipular comissões e configurações globais da plataforma, configurando o risco R06. |
 | **R02 / RS-03** | **Mass Assignment / Client-Side Parameter Tampering** (Atribuição em Massa e Adulteração de Parâmetros pelo Cliente): ocorre quando a aplicação confia em dados enviados pelo cliente para processar operações críticas sem revalidação no servidor. No contexto de e-commerce e delivery, manifesta-se quando valores financeiros calculados no frontend são enviados na requisição e processados sem verificação contra o valor correto no banco de dados. | OWASP Top 10 2021 — **A04: Insecure Design**; CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes; OWASP Cheat Sheet: Mass Assignment | No sistema de delivery, a API de checkout processa o campo `total_amount` enviado pelo cliente na requisição `POST /checkout` sem recalcular o valor com base nos preços do catálogo no banco de dados. Um cliente com proxy HTTP consegue alterar esse campo para R$ 0,00 e ter o pedido processado sem cobrança, configurando o risco R02. |
 
-## 3.3 Diagrama da Arquitetura Segura
+## 3.5 Decisões de Arquitetura
 
-O diagrama abaixo ilustra a arquitetura da solução, destacando onde os principais controles de segurança estão posicionados para tratar os riscos mapeados (WAF, MFA, controle de acesso RBAC, Logs de Auditoria e UUIDs no banco de dados).
-
-![Diagrama de Arquitetura Segura](../diagramas/Diagrama%20Da%20Arquitetura%20Segura.drawio.png)
-
-## 3.4 Decisões de Arquitetura
 Com base nos riscos prioritários levantados na Etapa 2, definimos três decisões fundamentais de arquitetura para garantir que o sistema seja seguro desde a sua concepção técnica.
 
 | Decisão | Risco mitigado | Justificativa (Motivo, Componente e Resultado Esperado) |
@@ -564,3 +559,21 @@ Com base nos riscos prioritários levantados na Etapa 2, definimos três decisõ
 | **Adoção de UUIDs versão 4 para chaves primárias** | **R04** (Extração em Massa de Dados por IDOR) | **Motivo:** Impedir que um atacante consiga enumerar e extrair dados de outros usuários apenas incrementando números sequenciais (ex: `/api/user/1` para `/api/user/2`).<br><br>**Componente afetado:** Banco de Dados e endpoints da API.<br><br>**Resultado esperado:** Impossibilidade técnica de varredura e adivinhação de rotas, eliminando a falha de design que permitia o vazamento em massa de dados. |
 | **Validação de Autorização Centralizada via API Gateway / Middleware com RBAC** | **R06** (Broken Access Control no Painel Admin) | **Motivo:** Ocultar opções na interface front-end não impede ataques diretos aos endpoints; a verificação precisa garantir que o token JWT contenha a declaração explícita (claim) do papel de Administrador.<br><br>**Componente afetado:** API Gateway / Gestão de Identidade (IAM).<br><br>**Resultado esperado:** Qualquer requisição para a rota `/admin/*` feita por parceiros ou clientes é rejeitada imediatamente com erro `HTTP 403 Forbidden` antes de atingir os microsserviços internos. |
 | **Processamento Transacional estritamente *Server-Side* com recálculo de valores** | **R02** (Manipulação do Valor do Pedido) | **Motivo:** O aplicativo mobile e o front-end web não são ambientes confiáveis, e parâmetros enviados pelo cliente podem ser interceptados e modificados via proxy (ex: zerando o valor do carrinho).<br><br>**Componente afetado:** API de Checkout e Gateway de Pagamento.<br><br>**Resultado esperado:** O backend ignora valores monetários enviados pelo cliente e sempre recalcula o total do pedido consultando o banco de dados interno, rejeitando compras fraudadas e mitigando prejuízos. |
+
+# Etapa 4 — Código Seguro e Testes de Segurança
+
+## 4.1 Escolha das Práticas
+
+Para garantir que a implementação do App de Delivery cumpra os Requisitos de Segurança definidos na Etapa 3, selecionamos duas práticas fundamentais de código seguro com base na documentação da **OWASP Cheat Sheet Series**. Ambas focam na mitigação direta dos riscos de maior impacto sistêmico e financeiro da plataforma.
+
+### Prática 1: Controle de Acesso e Autorização (RBAC *Server-Side*)
+* **Referência OWASP:** *Access Control Cheat Sheet* / *Authorization Cheat Sheet*.
+* **Risco Atendido:** **R06** — Escalonamento de Privilégio via Broken Access Control no Painel Administrativo.
+* **Requisito de Segurança Relacionado:** **RS-02** — O sistema deve implementar controle de acesso baseado em papéis (RBAC) verificado no servidor para todas as rotas administrativas (`/admin/*`).
+* **Justificativa:** Conforme preconizado pela OWASP, a autorização deve ser aplicada de maneira centralizada no *backend* e nunca depender exclusivamente da ocultação de botões na interface do usuário (UI). A implementação desta prática assegura que qualquer requisição direcionada aos endpoints administrativos rejeite tokens de parceiros ou clientes (HTTP 403), exigindo a presença explícita da *claim* de Administrador no JWT.
+
+### Prática 2: Validação de Entrada e Lógica de Negócio
+* **Referência OWASP:** *Input Validation Cheat Sheet* / *Mass Assignment Cheat Sheet*.
+* **Risco Atendido:** **R02** — Manipulação do Valor do Pedido na Requisição (Tampering).
+* **Requisito de Segurança Relacionado:** **RS-03** — O sistema deve recalcular obrigatoriamente o valor total de todo pedido no servidor com base nos preços registrados no banco de dados.
+* **Justificativa:** A regra fundamental da OWASP para transações é tratar toda entrada proveniente do cliente como não confiável (*untrusted data*). Ao aplicar o recálculo *server-side*, o sistema ignora qualquer manipulação do parâmetro `total_amount` feita via *proxies* interceptadores. Adicionalmente, o uso de assinaturas HMAC garante a integridade da requisição, inviabilizando fraudes diretas na API de Checkout e no Gateway de Pagamento.
