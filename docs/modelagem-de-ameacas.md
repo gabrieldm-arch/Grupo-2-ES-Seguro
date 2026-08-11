@@ -640,6 +640,64 @@ Abaixo estão definidos os casos de uso válidos e inválidos para cada uma das 
 
 **Forma de realização:** Implementamos a função `process_checkout` que obrigatoriamente itera sobre os itens do carrinho e busca os preços reais em um dicionário simulando o banco de dados (`DB_PRODUCTS`). O cálculo final do servidor é comparado com o valor enviado pelo cliente. Qualquer divergência lança um `ValueError`, cumprindo o TS03 e evitando o recebimento de pedidos adulterados.
 
+## 4.3 Implementação das Práticas
+
+Os fluxos abaixo descrevem, de forma estruturada, como cada controle de segurança funciona internamente no sistema. As implementações executáveis estão disponíveis na pasta `src/` do repositório (`etapa4_rbac_test.py` e `etapa4_checkout_test.py`).
+
+---
+
+### Prática 1 — Controle de Acesso RBAC Server-Side
+
+**Objetivo:** Garantir que nenhum endpoint administrativo seja acessível por usuários sem o papel explícito de Administrador, independentemente do que for exibido na interface.
+
+**Fluxo de funcionamento:**
+
+1. O usuário autenticado (cliente, restaurante ou entregador) realiza uma requisição HTTP para qualquer rota administrativa — por exemplo, `PATCH /api/admin/commissions/998`.
+
+2. Antes de a requisição chegar à lógica de negócio, um componente centralizado de verificação (decorator ou middleware) intercepta a chamada.
+
+3. O componente extrai o objeto de usuário associado à sessão atual, que contém o campo `role` derivado do token JWT emitido no momento do login.
+
+4. O componente verifica se o valor de `role` é exatamente `"admin"`. Qualquer outro valor — `"customer"`, `"restaurant"`, `"delivery"` — é tratado como não autorizado.
+
+5. **Se o papel for diferente de `"admin"`:** a requisição é interrompida imediatamente e o sistema retorna `HTTP 403 Forbidden`. A lógica de negócio do endpoint nunca é executada. O evento é registrado nos logs de auditoria com `user_id`, `role`, `endpoint` e `timestamp`.
+
+6. **Se o papel for `"admin"`:** a requisição prossegue normalmente para a lógica de negócio do endpoint administrativo.
+
+7. A verificação ocorre no servidor — nunca no frontend. Ocultar botões ou menus na interface não substitui essa validação.
+
+**Resultado esperado:**
+- Tokens com `role="restaurant"` recebem `HTTP 403` em todas as rotas `/admin/*` — cobre TS01.
+- Tokens com `role="admin"` recebem `HTTP 200` nas mesmas rotas — cobre TS02.
+
+---
+
+### Prática 2 — Validação Server-Side e Recálculo de Valor do Pedido
+
+**Objetivo:** Garantir que o valor total de qualquer pedido seja sempre calculado pelo servidor com base nos preços oficiais do banco de dados, ignorando qualquer valor enviado pelo cliente na requisição.
+
+**Fluxo de funcionamento:**
+
+1. O cliente finaliza o pedido no aplicativo e envia uma requisição `POST /api/checkout` contendo a lista de itens do carrinho e o campo `total_amount` com o valor exibido na tela.
+
+2. O servidor recebe a requisição e extrai apenas a lista de itens — o campo `total_amount` enviado pelo cliente é completamente ignorado neste ponto.
+
+3. Para cada item da lista, o servidor consulta o banco de dados interno e recupera o preço oficial cadastrado para aquele produto.
+
+4. O servidor soma os preços oficiais de todos os itens e calcula o `server_total` — o valor real do pedido segundo o catálogo.
+
+5. O servidor compara o `server_total` calculado com o `total_amount` enviado pelo cliente.
+
+6. **Se os valores divergirem** (qualquer diferença, inclusive R$ 0,01): a transação é rejeitada imediatamente com `HTTP 400 Bad Request`. O payload completo da requisição — incluindo o valor adulterado — é registrado nos logs como evidência auditável. O perfil do cliente recebe uma sinalização de tentativa de fraude para monitoramento antifraude.
+
+7. **Se os valores forem iguais:** a transação prossegue para o gateway de pagamento com o `server_total` como valor de cobrança — nunca o valor enviado pelo cliente.
+
+8. O gateway de pagamento processa a cobrança com base exclusivamente no valor calculado pelo servidor.
+
+**Resultado esperado:**
+- Requisição com `total_amount = R$ 0,00` para um carrinho de `R$ 150,00` é rejeitada com `HTTP 400` — cobre TS03.
+- Requisição com `total_amount` correto e correspondente ao catálogo é processada com `HTTP 200` — cobre TS04.
+
 ### Considerações Finais — Etapa 4
 
 A Etapa 4 materializou as decisões de arquitetura da Etapa 3 em implementações concretas e verificáveis, demonstrando que os controles de segurança propostos são tecnicamente viáveis e testáveis antes mesmo da existência de um sistema completo em produção.
