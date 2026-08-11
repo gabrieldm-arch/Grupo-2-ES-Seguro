@@ -660,31 +660,47 @@ A partir da execução do ZAP, selecionamos três alertas relevantes que impacta
 
 ## 6.1 Fundamentação Teórica
 
-**O que é detecção de intrusões?**
+### O que é detecção de intrusões
+
 A detecção de intrusões é o processo de monitorar continuamente os eventos que ocorrem em um sistema computacional ou rede, analisando-os em busca de sinais de possíveis incidentes, violações de políticas de segurança ou atividades maliciosas. Funciona como um "alarme" de segurança, identificando quando as defesas primárias falharam ou estão sob ataque.
 
-**A diferença entre prevenir e detectar:**
-*   **Prevenir:** Consiste em criar barreiras para impedir que o ataque ocorra (ex: exigir MFA para login, bloquear conexões via WAF, recálculo *server-side*). O foco é não deixar o invasor entrar.
-*   **Detectar:** Consiste em assumir que, eventualmente, uma prevenção falhará ou que um usuário legítimo se comportará de forma maliciosa. O foco é identificar o comportamento anômalo *enquanto* ou *logo após* ele acontecer, permitindo uma resposta rápida antes que o dano se escale.
+No contexto do aplicativo de delivery, isso significa monitorar as interações entre usuários, APIs e banco de dados para identificar padrões que fujam do comportamento esperado — como um entregador autenticando em dois dispositivos simultaneamente, um usuário iterando sobre centenas de IDs de perfis em segundos, ou um volume anormal de requisições em endpoints públicos durante horários de pico.
 
-**Eventos que o sistema de delivery deve registrar (logs):**
-Para viabilizar uma detecção eficiente sem sobrecarregar o armazenamento, o sistema não precisa registrar cada clique, mas deve auditar obrigatoriamente os eventos críticos:
-1.  **Autenticação e Sessão:** Logins bem-sucedidos e falhos, redefinições de senha, emissão e revogação de tokens JWT (com dados de IP e *device_id*).
-2.  **Autorização e Controle de Acesso:** Tentativas negadas (`HTTP 403`) de acesso a rotas `/admin/` por usuários sem privilégios ou tentativas de iteração em URLs de perfil (IDOR).
-3.  **Transacionais e de Negócio:** Alterações em valores de pedido, aplicação de cupons, repasses de comissão e solicitações de estorno (chargeback).
-4.  **Logísticos:** Confirmação de OTP na entrega, recusas de pedido e *timestamps* de geolocalização.
+### A diferença entre prevenir e detectar
+
+Prevenção e detecção são camadas complementares de segurança, não excludentes:
+
+**Prevenir** consiste em criar barreiras para impedir que o ataque ocorra — exigir MFA no login, bloquear conexões via WAF, recalcular valores no servidor. O foco é não deixar o invasor entrar.
+
+**Detectar** consiste em assumir que, eventualmente, uma prevenção falhará ou que um usuário legítimo se comportará de forma maliciosa. O foco é identificar o comportamento anômalo *enquanto* ou *logo após* ele acontecer, permitindo uma resposta rápida antes que o dano escale.
+
+Essa distinção é especialmente importante no delivery porque vários vetores de ataque identificados utilizam credenciais legítimas — CA-01 (sequestro de sessão de entregador) e CA-06 (Broken Access Control com token de parceiro). Nesses casos, a prevenção sozinha é insuficiente: o sistema precisa detectar o comportamento anômalo mesmo quando a autenticação foi bem-sucedida.
+
+### Eventos que o sistema de delivery deve registrar
+
+Para viabilizar uma detecção eficiente sem sobrecarregar o armazenamento, o sistema não precisa registrar cada clique, mas deve auditar obrigatoriamente os eventos críticos listados abaixo:
+
+| Categoria | Eventos a registrar |
+| :--- | :--- |
+| **Autenticação e Sessão** | Logins bem-sucedidos e falhos com IP e `device_id`; login em dispositivo diferente do habitual; emissão e revogação de tokens JWT; redefinição de senha |
+| **Autorização e Controle de Acesso** | Tentativas negadas (HTTP 403) de acesso a rotas `/admin/*` por perfis não administrativos; iteração sobre URLs de perfis alheios (IDOR); alteração de `role` em requisições |
+| **Transacionais e de Negócio** | Divergências entre valor enviado pelo cliente e valor calculado no servidor; aplicação de cupons; solicitações de estorno (chargeback); alterações em comissões e repasses |
+| **Logísticos** | Confirmação de OTP na entrega; recusas de pedido; timestamps de geolocalização ao marcar "entregue"; cancelamentos em sequência pelo mesmo usuário |
+| **Infraestrutura** | Volume de requisições por IP acima do threshold de rate limiting; ativação de auto-scaling; erros HTTP 5xx em volume anormal; backlog acima do limite nas filas de mensagens |
 
 ---
 
 ## 6.2 Regras de Detecção
 
-As regras a seguir foram projetadas para acionar o sistema de alerta do delivery caso as ameaças mapeadas na Etapa 1 e priorizadas na Etapa 2 (como Força Bruta/Spoofing, Broken Access Control e Fraude Financeira) tentem contornar as nossas prevenções.
+As regras a seguir foram projetadas para acionar o sistema de alerta do delivery caso as ameaças mapeadas na Etapa 1 e priorizadas na Etapa 2 tentem contornar as prevenções implementadas. Cada regra referencia diretamente o risco correspondente para manter a rastreabilidade com o registro de riscos da seção 2.4.
 
-| Risco observado | Fonte de dados | Condição de alerta | Resposta inicial |
-| :--- | :--- | :--- | :--- |
-| **Sequestro de Sessão / Força Bruta (R01)** | Logs de Autenticação (IAM) | Mais de 5 tentativas de login malsucedidas em menos de 1 minuto para a mesma conta de Entregador, ou 1 login bem-sucedido a partir de um *device_id* ou IP geograficamente impossível em relação ao último acesso. | Alertar a equipe de segurança, invalidar o token atual, bloquear a conta temporariamente e forçar a redefinição de senha com exigência de MFA no próximo login. |
-| **Extração de Dados / IDOR (R04)** | Logs de Acesso da API (Gateway) | Um mesmo IP ou usuário autenticado gera mais de 10 requisições negadas (`HTTP 403` ou `HTTP 404`) seguidas tentando acessar URIs de perfis alheios (ex: `/api/profile/*`) em um espaço de tempo muito curto (varredura). | Acionar *Rate Limiting* estrito, bloquear o IP no WAF por 24 horas e suspender a sessão do usuário investigado até análise manual. |
-| **Fraude Financeira / Tampering (R02)** | Logs Transacionais e de Pagamento | O sistema registra repetidas rejeições de checkout (`HTTP 400`) oriundas da validação de divergência de valor financeiro (tentativa de *Mass Assignment*) no mesmo carrinho ou pela mesma conta de cliente. | Cancelar a transação instantaneamente, registrar o payload malicioso como evidência e sinalizar o perfil do cliente na base de dados (flag de risco alto) para monitoramento antifraude ativo. |
+| ID | Risco observado | Fonte de dados | Condição de alerta | Resposta inicial |
+| :---: | :--- | :--- | :--- | :--- |
+| **RD-01** | **R01** — Sequestro de Sessão / Força Bruta (Spoofing / CA-01) | Logs de autenticação do serviço de IAM (campos: `user_id`, `device_id`, `ip_address`, `timestamp`, `success`) | Mais de 5 tentativas de login malsucedidas para a mesma conta de entregador em menos de 60 segundos; **ou** login bem-sucedido a partir de um `device_id` ou IP geograficamente incompatível com o último acesso registrado nos últimos 30 dias | Invalidar imediatamente todas as sessões ativas do usuário; bloquear a conta temporariamente; notificar o entregador por push notification e SMS; exigir nova autenticação com MFA e redefinição de senha; registrar o evento como incidente para análise da equipe de SecOps |
+| **RD-02** | **R04** — Extração em Massa de Dados / IDOR (Information Disclosure / CA-04) | Logs de acesso da API no Gateway (campos: `user_id`, `ip`, `endpoint`, `resource_id`, `http_status`, `timestamp`) | Um mesmo `user_id` ou IP realiza mais de 10 requisições com `resource_id` distintos nos endpoints `/api/profile/*` ou `/api/orders/*` em uma janela de 60 segundos, independentemente do código de resposta retornado | Acionar rate limiting estrito para o `user_id` e IP; bloquear o IP no WAF por 24 horas; suspender a sessão do usuário investigado até análise manual; gerar alerta de prioridade alta com histórico completo de requisições do intervalo para avaliação de possível violação de dados sob a LGPD |
+| **RD-03** | **R02** — Fraude Financeira / Tampering (Tampering / CA-02) | Logs transacionais e de pagamento (campos: `user_id`, `order_id`, `client_amount`, `server_amount`, `http_status`, `timestamp`) | O mesmo `user_id` ou carrinho gera 3 ou mais rejeições de checkout (HTTP 400) por divergência entre o valor enviado pelo cliente (`client_amount`) e o valor recalculado no servidor (`server_amount`) em uma janela de 10 minutos | Cancelar a transação instantaneamente; registrar o payload completo da requisição como evidência auditável; sinalizar o perfil do cliente com flag de risco alto na base de dados; encaminhar para monitoramento antifraude ativo e análise manual antes de permitir novas transações |
+
+---
 
 # Etapa 7 — DevSecOps e Vídeo Final
 
