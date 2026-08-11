@@ -31,6 +31,10 @@
 - [Etapa 4 — Código Seguro e Testes de Segurança](#etapa-4--código-seguro-e-testes-de-segurança)
   - [4.1 Escolha das Práticas](#41-escolha-das-práticas)
   - [4.2 Testes e Implementação (Python)](#42-testes-e-implementação-python)
+- [Etapa 5 — Verificação de Vulnerabilidades](#etapa-5--verificação-de-vulnerabilidades)
+  - [5.1 Configuração da Verificação](#51-configuração-da-verificação)
+  - [5.2 Evidência da Execução](#52-evidência-da-execução)
+  - [5.3 Análise de Alertas e Correções](#53-análise-de-alertas-e-correções)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -618,3 +622,29 @@ Abaixo estão definidos os casos de uso válidos e inválidos para cada uma das 
 | **TS04** *(Válido)* | Cliente envia pedido com total exato correspondente ao catálogo | A transação é processada com sucesso (`HTTP 200 OK`) |
 
 **Forma de realização:** Implementamos a função `process_checkout` que obrigatoriamente itera sobre os itens do carrinho e busca os preços reais em um dicionário simulando o banco de dados (`DB_PRODUCTS`). O cálculo final do servidor é comparado com o valor enviado pelo cliente. Qualquer divergência lança um `ValueError`, cumprindo o TS03 e evitando o recebimento de pedidos adulterados.
+
+# Etapa 5 — Verificação de Vulnerabilidades
+
+Nesta etapa, utilizamos a ferramenta de teste de segurança dinâmica (DAST) **OWASP ZAP** para varrer uma aplicação vulnerável padronizada (*OWASP Juice Shop*). O objetivo é observar o tráfego, identificar configurações inseguras e propor correções para os alertas gerados, simulando um ambiente de homologação antes de colocar um aplicativo web/API em produção.
+
+## 5.1 Configuração da Verificação
+
+* **Sistema testado:** OWASP Juice Shop (Aplicação web deliberadamente vulnerável, autorizada para fins educacionais).
+* **Ferramenta utilizada:** OWASP ZAP (Zed Attack Proxy).
+* **Configuração básica do teste:** Realizamos uma Varredura Automatizada (*Automated Scan*) padrão da ferramenta, iniciando com o *Spider* (aranha) para mapear e descobrir todas as rotas e arquivos públicos da aplicação, seguido imediatamente por um *Active Scan* focado em testar vetores de ataque comuns, injeções e vazamentos de cabeçalho HTTP. O escaneamento foi realizado sem credenciais prévias (análise em caixa preta).
+
+## 5.2 Evidência da Execução
+
+Abaixo consta a captura de tela evidenciando a execução do OWASP ZAP contra o alvo. O quadrante inferior exibe a aba de **Alertas**, detalhando as descobertas categorizadas por nível de criticidade.
+
+![Evidência ZAP](../imagens/evidenciasetapa-5captura_zap.png)
+
+## 5.3 Análise de Alertas e Correções
+
+A partir da execução do ZAP, selecionamos três alertas relevantes que impactam a postura de segurança do *front-end* e da comunicação com as APIs. Abaixo, descrevemos o impacto potencial de cada um e propomos medidas corretivas baseadas em melhores práticas.
+
+| ID | Alerta ou achado | Evidência                                                                                                                     | Possível impacto | Relação com OWASP ou CWE | Correção proposta |
+| :---: | :--- |:------------------------------------------------------------------------------------------------------------------------------| :--- | :--- | :--- |
+| **A01** | **Content Security Policy (CSP) Header Not Set** | O cabeçalho `Content-Security-Policy` não está presente nas respostas HTTP da aplicação.                                      | A ausência do CSP permite que o navegador do usuário confie e execute scripts de qualquer origem. Isso reduz drasticamente a defesa em profundidade e facilita ataques de *Cross-Site Scripting* (XSS) caso um atacante consiga injetar código na página. | OWASP A05:2021-Security Misconfiguration<br>CWE-693 (Protection Mechanism Failure) | Configurar o servidor web ou API Gateway para retornar o cabeçalho `Content-Security-Policy`. Exemplo de medida inicial: `default-src 'self'`, que restringe o carregamento de recursos apenas ao domínio de origem. |
+| **A02** | **Missing Anti-clickjacking Header** | O cabeçalho de resposta `X-Frame-Options` (ou a diretiva `frame-ancestors` do CSP) não foi incluído pela aplicação.           | Um atacante pode embutir a aplicação inteira (ex: a tela de checkout do nosso delivery) dentro de um *iframe* invisível em um site malicioso controlado por ele. O usuário legítimo clicaria em botões sem saber que está executando ações na nossa plataforma (Clickjacking). | OWASP A05:2021-Security Misconfiguration<br>CWE-1021 (Improper Restriction of Rendered UI Layers or Frames) | Adicionar o cabeçalho HTTP `X-Frame-Options: DENY` (para impedir qualquer iframe) ou `SAMEORIGIN` (para permitir apenas no próprio domínio) em todas as páginas e rotas de estado que exigem interação. |
+| **A03** | **Sub Resource Integrity Attribute Missing** | Arquivos carregados externamente (via tags `<script>` ou `<link>` apontando para CDNs) não possuem o atributo de integridade. | Se o CDN de terceiros que hospeda uma biblioteca (ex: jQuery, Bootstrap) for hackeado e o arquivo modificado com código malicioso, a nossa aplicação carregará e executará esse código indiscriminadamente para todos os usuários. | OWASP A06:2021-Vulnerable and Outdated Components<br>CWE-345 (Insufficient Verification of Data Authenticity) | Adicionar o atributo `integrity` contendo o hash criptográfico do arquivo (ex: `integrity="sha384-..."`) nas tags `<script>` e `<link>` externas, garantindo que o navegador bloqueie o carregamento caso o arquivo original seja alterado remotamente. |
