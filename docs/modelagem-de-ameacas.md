@@ -35,10 +35,10 @@
   - [5.1 Configuração da Verificação](#51-configuração-da-verificação)
   - [5.2 Evidência da Execução](#52-evidência-da-execução)
   - [5.3 Análise de Alertas e Correções](#53-análise-de-alertas-e-correções)
-  - [Etapa 6 — Monitoramento e Detecção de Intrusões](#etapa-6--monitoramento-e-detecção-de-intrusões)
+- [Etapa 6 — Monitoramento e Detecção de Intrusões](#etapa-6--monitoramento-e-detecção-de-intrusões)
   - [6.1 Fundamentação Teórica](#61-fundamentação-teórica)
   - [6.2 Regras de Detecção](#62-regras-de-detecção)
-  - [Etapa 7 — DevSecOps e Vídeo Final](#etapa-7--devsecops-e-vídeo-final)
+- [Etapa 7 — DevSecOps e Vídeo Final](#etapa-7--devsecops-e-vídeo-final)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
