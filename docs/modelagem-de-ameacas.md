@@ -35,6 +35,10 @@
   - [5.1 Configuração da Verificação](#51-configuração-da-verificação)
   - [5.2 Evidência da Execução](#52-evidência-da-execução)
   - [5.3 Análise de Alertas e Correções](#53-análise-de-alertas-e-correções)
+  - [Etapa 6 — Monitoramento e Detecção de Intrusões](#etapa-6--monitoramento-e-detecção-de-intrusões)
+  - [6.1 Fundamentação Teórica](#61-fundamentação-teórica)
+  - [6.2 Regras de Detecção](#62-regras-de-detecção)
+  - [Etapa 7 — DevSecOps e Vídeo Final](#etapa-7--devsecops-e-vídeo-final)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -648,3 +652,35 @@ A partir da execução do ZAP, selecionamos três alertas relevantes que impacta
 | **A01** | **Content Security Policy (CSP) Header Not Set** | O cabeçalho `Content-Security-Policy` não está presente nas respostas HTTP da aplicação.                                      | A ausência do CSP permite que o navegador do usuário confie e execute scripts de qualquer origem. Isso reduz drasticamente a defesa em profundidade e facilita ataques de *Cross-Site Scripting* (XSS) caso um atacante consiga injetar código na página. | OWASP A05:2021-Security Misconfiguration<br>CWE-693 (Protection Mechanism Failure) | Configurar o servidor web ou API Gateway para retornar o cabeçalho `Content-Security-Policy`. Exemplo de medida inicial: `default-src 'self'`, que restringe o carregamento de recursos apenas ao domínio de origem. |
 | **A02** | **Missing Anti-clickjacking Header** | O cabeçalho de resposta `X-Frame-Options` (ou a diretiva `frame-ancestors` do CSP) não foi incluído pela aplicação.           | Um atacante pode embutir a aplicação inteira (ex: a tela de checkout do nosso delivery) dentro de um *iframe* invisível em um site malicioso controlado por ele. O usuário legítimo clicaria em botões sem saber que está executando ações na nossa plataforma (Clickjacking). | OWASP A05:2021-Security Misconfiguration<br>CWE-1021 (Improper Restriction of Rendered UI Layers or Frames) | Adicionar o cabeçalho HTTP `X-Frame-Options: DENY` (para impedir qualquer iframe) ou `SAMEORIGIN` (para permitir apenas no próprio domínio) em todas as páginas e rotas de estado que exigem interação. |
 | **A03** | **Sub Resource Integrity Attribute Missing** | Arquivos carregados externamente (via tags `<script>` ou `<link>` apontando para CDNs) não possuem o atributo de integridade. | Se o CDN de terceiros que hospeda uma biblioteca (ex: jQuery, Bootstrap) for hackeado e o arquivo modificado com código malicioso, a nossa aplicação carregará e executará esse código indiscriminadamente para todos os usuários. | OWASP A06:2021-Vulnerable and Outdated Components<br>CWE-345 (Insufficient Verification of Data Authenticity) | Adicionar o atributo `integrity` contendo o hash criptográfico do arquivo (ex: `integrity="sha384-..."`) nas tags `<script>` e `<link>` externas, garantindo que o navegador bloqueie o carregamento caso o arquivo original seja alterado remotamente. |
+
+# Etapa 6 — Monitoramento e Detecção de Intrusões
+
+## 6.1 Fundamentação Teórica
+
+**O que é detecção de intrusões?**
+A detecção de intrusões é o processo de monitorar continuamente os eventos que ocorrem em um sistema computacional ou rede, analisando-os em busca de sinais de possíveis incidentes, violações de políticas de segurança ou atividades maliciosas. Funciona como um "alarme" de segurança, identificando quando as defesas primárias falharam ou estão sob ataque.
+
+**A diferença entre prevenir e detectar:**
+*   **Prevenir:** Consiste em criar barreiras para impedir que o ataque ocorra (ex: exigir MFA para login, bloquear conexões via WAF, recálculo *server-side*). O foco é não deixar o invasor entrar.
+*   **Detectar:** Consiste em assumir que, eventualmente, uma prevenção falhará ou que um usuário legítimo se comportará de forma maliciosa. O foco é identificar o comportamento anômalo *enquanto* ou *logo após* ele acontecer, permitindo uma resposta rápida antes que o dano se escale.
+
+**Eventos que o sistema de delivery deve registrar (logs):**
+Para viabilizar uma detecção eficiente sem sobrecarregar o armazenamento, o sistema não precisa registrar cada clique, mas deve auditar obrigatoriamente os eventos críticos:
+1.  **Autenticação e Sessão:** Logins bem-sucedidos e falhos, redefinições de senha, emissão e revogação de tokens JWT (com dados de IP e *device_id*).
+2.  **Autorização e Controle de Acesso:** Tentativas negadas (`HTTP 403`) de acesso a rotas `/admin/` por usuários sem privilégios ou tentativas de iteração em URLs de perfil (IDOR).
+3.  **Transacionais e de Negócio:** Alterações em valores de pedido, aplicação de cupons, repasses de comissão e solicitações de estorno (chargeback).
+4.  **Logísticos:** Confirmação de OTP na entrega, recusas de pedido e *timestamps* de geolocalização.
+
+---
+
+## 6.2 Regras de Detecção
+
+As regras a seguir foram projetadas para acionar o sistema de alerta do delivery caso as ameaças mapeadas na Etapa 1 e priorizadas na Etapa 2 (como Força Bruta/Spoofing, Broken Access Control e Fraude Financeira) tentem contornar as nossas prevenções.
+
+| Risco observado | Fonte de dados | Condição de alerta | Resposta inicial |
+| :--- | :--- | :--- | :--- |
+| **Sequestro de Sessão / Força Bruta (R01)** | Logs de Autenticação (IAM) | Mais de 5 tentativas de login malsucedidas em menos de 1 minuto para a mesma conta de Entregador, ou 1 login bem-sucedido a partir de um *device_id* ou IP geograficamente impossível em relação ao último acesso. | Alertar a equipe de segurança, invalidar o token atual, bloquear a conta temporariamente e forçar a redefinição de senha com exigência de MFA no próximo login. |
+| **Extração de Dados / IDOR (R04)** | Logs de Acesso da API (Gateway) | Um mesmo IP ou usuário autenticado gera mais de 10 requisições negadas (`HTTP 403` ou `HTTP 404`) seguidas tentando acessar URIs de perfis alheios (ex: `/api/profile/*`) em um espaço de tempo muito curto (varredura). | Acionar *Rate Limiting* estrito, bloquear o IP no WAF por 24 horas e suspender a sessão do usuário investigado até análise manual. |
+| **Fraude Financeira / Tampering (R02)** | Logs Transacionais e de Pagamento | O sistema registra repetidas rejeições de checkout (`HTTP 400`) oriundas da validação de divergência de valor financeiro (tentativa de *Mass Assignment*) no mesmo carrinho ou pela mesma conta de cliente. | Cancelar a transação instantaneamente, registrar o payload malicioso como evidência e sinalizar o perfil do cliente na base de dados (flag de risco alto) para monitoramento antifraude ativo. |
+
+# Etapa 7 — DevSecOps e Vídeo Final
