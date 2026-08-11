@@ -30,7 +30,7 @@
   - [3.4 Decisões de Arquitetura](#34-decisões-de-arquitetura)
 - [Etapa 4 — Código Seguro e Testes de Segurança](#etapa-4--código-seguro-e-testes-de-segurança)
   - [4.1 Escolha das Práticas](#41-escolha-das-práticas)
-  - [4.2 Testes e Implementação (Python)](#42-testes-e-implementação-python)
+  - [4.2 Testes e Implementação](#42-testes-e-implementação)
 - [Etapa 5 — Verificação de Vulnerabilidades](#etapa-5--verificação-de-vulnerabilidades)
   - [5.1 Configuração da Verificação](#51-configuração-da-verificação)
   - [5.2 Evidência da Execução](#52-evidência-da-execução)
@@ -39,6 +39,9 @@
   - [6.1 Fundamentação Teórica](#61-fundamentação-teórica)
   - [6.2 Regras de Detecção](#62-regras-de-detecção)
 - [Etapa 7 — DevSecOps e Vídeo Final](#etapa-7--devsecops-e-vídeo-final)
+  - [7.1 Fluxo DevSecOps da Equipe](#71-fluxo-devsecops-da-equipe)
+  - [7.2 Tabela de Continuidade do Pipeline](#72-tabela-de-continuidade-do-pipeline)
+  - [7.3 Condições de Bloqueio](#73-condições-de-bloqueio)
 ---
 
 > **Disciplina:** Engenharia de Software Seguro — Codefólio  
@@ -684,3 +687,38 @@ As regras a seguir foram projetadas para acionar o sistema de alerta do delivery
 | **Fraude Financeira / Tampering (R02)** | Logs Transacionais e de Pagamento | O sistema registra repetidas rejeições de checkout (`HTTP 400`) oriundas da validação de divergência de valor financeiro (tentativa de *Mass Assignment*) no mesmo carrinho ou pela mesma conta de cliente. | Cancelar a transação instantaneamente, registrar o payload malicioso como evidência e sinalizar o perfil do cliente na base de dados (flag de risco alto) para monitoramento antifraude ativo. |
 
 # Etapa 7 — DevSecOps e Vídeo Final
+
+## 7.1 Fluxo DevSecOps da Equipe
+
+Para garantir que as decisões de segurança acompanhem a evolução do App de Delivery e não se tornem gargalos no fim do processo, desenhamos um fluxo contínuo de DevSecOps dividido nas seguintes fases:
+
+1. **Planejamento:** Antes de escrever o código, a equipe modela as ameaças da nova *feature* (usando STRIDE) e quantifica os riscos (NIST CSF) para definir os requisitos de segurança arquiteturais (ex: adotar UUIDs para evitar IDOR).
+2. **Código Seguro:** O desenvolvedor aplica as diretrizes da OWASP (*Cheat Sheets*) e cria testes TDD de segurança antes da lógica de negócio (ex: forçar erro 403 para controle de acesso).
+3. **Testes Automatizados (CI):** A cada *commit*, o GitHub Actions roda os testes unitários (SAST e TDD). Se um teste de segurança falhar, o *build* quebra.
+4. **Verificação Dinâmica (DAST):** O código aprovado sobe para um ambiente de homologação (*Staging*), onde uma ferramenta automatizada (como o OWASP ZAP) escaneia a API em busca de falhas em tempo de execução (ex: falta de cabeçalhos CSP ou anti-clickjacking).
+5. **Implantação Segura (CD):** Após a aprovação do DAST e revisão de código manual, a versão é liberada para produção.
+6. **Monitoramento Operacional:** O sistema em produção envia logs estruturados e a infraestrutura aplica regras automáticas de detecção (ex: WAF limitando acessos abusivos e bloqueio por força bruta).
+
+---
+
+## 7.2 Tabela de Continuidade do Pipeline
+
+Esta tabela resume os *gates* (portões de qualidade) do nosso fluxo automatizado. O *deploy* para produção só ocorre se todas as condições de continuidade forem satisfeitas.
+
+| Momento | Atividade de segurança | Evidência produzida | Condição para continuar |
+| :--- | :--- | :--- | :--- |
+| **Planejamento** | Modelagem de Ameaças (STRIDE) e Análise de Riscos. | Tabela de ameaças, matriz de riscos e Requisitos de Segurança definidos. | Riscos inaceitáveis/críticos devem possuir um plano de tratamento formalizado. |
+| **Código** | Implementação de código seguro baseado na OWASP e criação de testes (TDD). | Códigos fonte com validação *server-side* e *scripts* de testes de unidade. | Os testes devem cobrir obrigatoriamente cenários de ataques (inválidos) e cenários de sucesso (válidos). |
+| **Testes (CI)** | Execução automatizada da suíte de testes de unidade e segurança no repositório. | Logs do *runner* (ex: GitHub Actions) exibindo `Pass` ou `Fail`. | 100% dos testes devem ser aprovados. |
+| **Verificação (DAST)** | Escaneamento automatizado em ambiente de *Staging* usando OWASP ZAP. | Relatório de alertas e vulnerabilidades (HTML/PDF). | Nenhuma vulnerabilidade de criticidade Alta (*High*) ou Crítica (*Critical*) pode ser ignorada. |
+| **Operação** | Coleta de logs, rate limiting e disparo de alertas de segurança. | Alertas gerados no painel de monitoramento e bloqueios no WAF. | Incidentes críticos devem ser contidos; ausência de falsos positivos excessivos travando usuários legítimos. |
+
+---
+
+## 7.3 Condições de Bloqueio
+
+No conceito de DevSecOps, o botão "*Stop-the-line*" significa interromper imediatamente a esteira de implantação se algo grave for detectado, impedindo que o código vulnerável chegue à produção. Abaixo estão três gatilhos críticos no nosso sistema de delivery que fariam o *pipeline* travar sumariamente:
+
+1. **Reprovação em Teste de Lógica de Negócio (Tampering):** Se a suíte automatizada rodar o teste de "Manipulação do Valor do Pedido" e o backend retornar sucesso (`HTTP 200 OK`) aceitando um carrinho com valor `R$ 0,00` adulterado pelo cliente. Isso indica falha no recálculo *server-side* e o código não pode subir.
+2. **Vulnerabilidade de Controle de Acesso (Broken Access Control):** Se o DAST (OWASP ZAP) detectar ou os testes unitários falharem em impedir que um *token* com `role="restaurant"` acesse uma URL estrita de administração (ex: `/api/admin/commissions`). Isso indica exposição sistêmica.
+3. **Vazamento de Segredos no Repositório:** Se o scanner de dependências ou de segredos do GitHub (ex: *TruffleHog* ou *Gitleaks*) identificar *commits* recentes contendo chaves privadas da API de Pagamento (Gateway), senhas de banco de dados ou a chave mestre (SECRET_KEY) de assinatura dos tokens JWT em texto claro.
