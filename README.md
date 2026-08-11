@@ -28,11 +28,35 @@ O repositório será estruturado para documentar a evolução contínua da anál
 
 ```text
 Grupo-2-ES-Seguro/
-├── README.md                           Apresentação do grupo e identificação do sistema
-├── docs/                               Documentos principais em Markdown
-│   └── modelagem-de-ameacas.md         Documento unificado de análise
-├── diagramas/                          Diagramas de arquitetura, contexto, DFD e casos de uso
-└── imagens/                            Imagens e figuras auxiliares utilizadas na documentação
+├── README.md
+│
+├── docs/
+│   ├── etapa-1-ameacas-stride.md
+│   ├── etapa-2-riscos-nist.md
+│   ├── etapa-3-arquitetura-segura.md
+│   ├── etapa-4-codigo-seguro.md
+│   └── etapa-5-verificacao-vulnerabilidades.md
+│
+├── diagramas/
+│   ├── etapa-1/
+│   │   └── visao-geral-do-sistema.png
+│   └── etapa-3/
+│       ├── arquitetura-segura.png
+│       └── arquitetura-segura.drawio
+│
+├── codigo/
+│   └── etapa-4/
+│       ├── implementacao-ou-pseudocodigo
+│       └── testes
+│
+├── evidencias/
+│   └── etapa-5/
+│       ├── capturas-de-tela/
+│       └── relatorio-da-verificacao.md
+│
+└── roteiros/
+    ├── etapa-6-deteccao-de-intrusoes.md
+    └── etapa-7-devsecops-e-video-final.md
 ```
 
 ---
@@ -45,6 +69,6 @@ O projeto será desenvolvido em **7 etapas** ao longo da disciplina. O progresso
 - [x] **Etapa 2:** Análise, Priorização e Tratamento de Riscos com o NIST CSF 
 - [x] **Etapa 3:** Projeto de uma Arquitetura Segura 
 - [x] **Etapa 4:** Código Seguro e Testes de Segurança
-- [ ] **Etapa 5:** Verificação de Vulnerabilidades *(Em andamento)*
-- [ ] **Etapa 6:** Monitoramento e Detecção de Intrusões 
-- [ ] **Etapa 7:** DevSecOps e Vídeo Final
+- [x] **Etapa 5:** Verificação de Vulnerabilidades
+- [x] **Etapa 6:** Monitoramento e Detecção de Intrusões 
+- [ ] **Etapa 7:** DevSecOps e Vídeo Final *(Em andamento)*
