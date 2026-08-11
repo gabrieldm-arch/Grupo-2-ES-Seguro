@@ -640,6 +640,16 @@ Abaixo estão definidos os casos de uso válidos e inválidos para cada uma das 
 
 **Forma de realização:** Implementamos a função `process_checkout` que obrigatoriamente itera sobre os itens do carrinho e busca os preços reais em um dicionário simulando o banco de dados (`DB_PRODUCTS`). O cálculo final do servidor é comparado com o valor enviado pelo cliente. Qualquer divergência lança um `ValueError`, cumprindo o TS03 e evitando o recebimento de pedidos adulterados.
 
+### Considerações Finais — Etapa 4
+
+A Etapa 4 materializou as decisões de arquitetura da Etapa 3 em implementações concretas e verificáveis, demonstrando que os controles de segurança propostos são tecnicamente viáveis e testáveis antes mesmo da existência de um sistema completo em produção.
+
+As duas práticas implementadas — controle de acesso RBAC server-side e validação de lógica de negócio com recálculo server-side — foram escolhidas por atacarem diretamente os dois riscos de maior impacto sistêmico e financeiro do registro: R06 (Broken Access Control) e R02 (Manipulação de Valor do Pedido). A abordagem TDD adotada — escrever os testes de segurança antes da lógica de negócio — garantiu que os critérios de rejeição de ataques (TS01 e TS03) fossem tratados como requisitos de primeira classe, e não como verificações opcionais adicionadas ao final do desenvolvimento.
+
+Um resultado relevante desta etapa foi demonstrar que segurança por design não exige complexidade excessiva: o decorator `@require_role("admin")` e a função `process_checkout` com recálculo obrigatório são implementações concisas que eliminam completamente as condições habilitadoras de R06 e R02 quando aplicadas de forma consistente em todos os endpoints relevantes. A dificuldade não está na complexidade técnica dos controles, mas na disciplina de aplicá-los sem exceções.
+
+A principal limitação desta etapa é que os testes foram executados em ambiente isolado com dados simulados, sem integração com o banco de dados real, o gateway de pagamento ou o fluxo completo de autenticação JWT. A validação em ambiente integrado e com tráfego real será realizada na Etapa 5, onde o OWASP ZAP verificará dinamicamente se os controles implementados resistem a vetores de ataque automatizados.
+
 # Etapa 5 — Verificação de Vulnerabilidades
 
 Nesta etapa, utilizamos a ferramenta de teste de segurança dinâmica (DAST) **OWASP ZAP** para varrer uma aplicação vulnerável padronizada (*OWASP Juice Shop*). O objetivo é observar o tráfego, identificar configurações inseguras e propor correções para os alertas gerados, simulando um ambiente de homologação antes de colocar um aplicativo web/API em produção.
