@@ -35,6 +35,10 @@ No conceito de DevSecOps, o botão "*Stop-the-line*" significa interromper imedi
 2. **Vulnerabilidade de Controle de Acesso (Broken Access Control):** Se o DAST (OWASP ZAP) detectar ou os testes unitários falharem em impedir que um *token* com `role="restaurant"` acesse uma URL estrita de administração (ex: `/api/admin/commissions`). Isso indica exposição sistêmica.
 3. **Vazamento de Segredos no Repositório:** Se o scanner de dependências ou de segredos do GitHub (ex: *TruffleHog* ou *Gitleaks*) identificar *commits* recentes contendo chaves privadas da API de Pagamento (Gateway), senhas de banco de dados ou a chave mestre (SECRET_KEY) de assinatura dos tokens JWT em texto claro.
 
+## 7.4 Vídeo
+
+**Link do Vídeo:** https://youtu.be/R76SqL1aWxw?si=zFQ1756ygJJIeqUD
+
 ### Considerações Finais — Etapa 7
 
 A Etapa 7 encerrou o ciclo de análise do trabalho integrando todas as decisões e controles produzidos nas etapas anteriores em um fluxo contínuo de DevSecOps, demonstrando que segurança não é uma fase isolada do desenvolvimento mas uma responsabilidade distribuída ao longo de todo o ciclo de vida do software.
